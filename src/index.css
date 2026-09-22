@@ -1,0 +1,23 @@
+:root {
+  --font-display: "Newsreader", Georgia, serif;
+  --font-body: "Inter", "Segoe UI", system-ui, Roboto, sans-serif;
+
+  font: 16px/1.5 var(--font-body);
+  color-scheme: dark;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
