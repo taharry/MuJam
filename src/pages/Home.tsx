@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { searchSongs, type Song } from "../data/songs";
 import { extractYouTubeUrl, resolveYouTubeTitle } from "../lib/youtube";
+import { listCustomSongs } from "../lib/customSongs";
 import Divider from "../components/Divider";
 
 export default function Home() {
@@ -10,6 +11,7 @@ export default function Home() {
   const [resolvedFrom, setResolvedFrom] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const navigate = useNavigate();
+  const customSongs = useMemo(() => listCustomSongs(), []);
 
   const results = useMemo(() => searchSongs(query), [query]);
 
@@ -69,7 +71,21 @@ export default function Home() {
             ))}
           </ul>
         )}
+        <button className="link-btn import-audio-link" onClick={() => navigate("/import")}>
+          Or import a recording of your own →
+        </button>
       </section>
+
+      {customSongs.length > 0 && (
+        <section className="your-imports">
+          <h2>Your imports</h2>
+          <ul className="search-results">
+            {customSongs.map((song) => (
+              <SongRow key={song.id} song={song} />
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

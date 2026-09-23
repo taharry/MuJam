@@ -45,19 +45,38 @@ export interface Song {
    * simplified `sections` above — see getArrangement().
    */
   verifiedArrangement?: { sections: SectionBlueprint[]; expectedTotalBeats?: number };
+  /**
+   * A user's own corrected draft from the audio-import estimator (see
+   * pages/ImportAudio.tsx). Already flattened — unlike the other two
+   * arrangement forms, this one skips section authoring entirely since
+   * it comes from a saved review/edit pass, not hand-entered structure.
+   */
+  importedArrangement?: { events: { chord: string; startBeat: number; durationBeats: number }[] };
   /** Recommended strum pattern specific to this song/recording, if one has been entered. */
   strumPattern?: StrumPattern;
   /** YouTube video id for in-app synced playback (not a claim that chords were auto-detected from it). */
   youtubeId?: string;
 }
 
-// Builds the shared, flattened playback timeline for a song: the
-// verified arrangement if one has been entered, otherwise the
-// simplified progression. Every consumer (player, diagrams, strum
-// guide, timeline, seek controls) should read this instead of walking
-// `song.sections` directly, so they can never disagree about beat
-// positions.
+// Builds the shared, flattened playback timeline for a song: an
+// imported draft or verified arrangement if either has been entered,
+// otherwise the simplified progression. Every consumer (player,
+// diagrams, strum guide, timeline, seek controls) should read this
+// instead of walking `song.sections` directly, so they can never
+// disagree about beat positions.
 export function getArrangement(song: Song): Arrangement {
+  if (song.importedArrangement) {
+    const events = song.importedArrangement.events;
+    const totalBeats = events.reduce((max, e) => Math.max(max, e.startBeat + e.durationBeats), 0);
+    return {
+      source: "imported",
+      bpm: song.bpm,
+      beatsPerBar: song.beatsPerBar,
+      totalBeats,
+      events: events.map((e) => ({ ...e, sectionIndex: 0 })),
+      sections: [],
+    };
+  }
   if (song.verifiedArrangement) {
     return buildArrangement({
       source: "verified",

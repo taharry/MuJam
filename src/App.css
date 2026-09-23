@@ -724,6 +724,12 @@ body::after {
   border-color: transparent;
 }
 
+.timeline__source--imported {
+  color: #16101f;
+  background: var(--color-violet);
+  border-color: transparent;
+}
+
 .timeline__snap {
   display: inline-flex;
   align-items: center;
@@ -1221,4 +1227,204 @@ body::after {
   max-width: 480px;
   margin: 0 auto 16px;
   line-height: 1.5;
+}
+
+/* Import audio (beta) */
+.link-btn {
+  border: none;
+  background: none;
+  color: var(--color-violet);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.import-audio-link {
+  display: block;
+  margin: 18px auto 0;
+  text-align: center;
+}
+
+.your-imports {
+  max-width: 520px;
+  margin: 32px auto 0;
+  text-align: center;
+}
+
+.your-imports h2 {
+  font-size: 15px;
+  color: var(--color-muted);
+  margin-bottom: 10px;
+}
+
+.import-audio {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.import-audio__intro {
+  color: var(--color-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+}
+
+.import-audio__dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  border: 2px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  color: var(--color-muted);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.import-audio__dropzone:hover {
+  border-color: var(--color-violet);
+  color: var(--color-text);
+}
+
+.import-audio__dropzone input {
+  display: none;
+}
+
+.import-audio__status,
+.import-audio__error {
+  text-align: center;
+  color: var(--color-muted);
+  padding: 24px;
+}
+
+.waveform {
+  width: 100%;
+  display: block;
+  background: var(--color-surface-2);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+.import-audio__transport {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.import-audio__time {
+  color: var(--color-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.import-audio__bpm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 18px;
+  font-size: 13.5px;
+  color: var(--color-muted);
+}
+
+.import-audio__bpm input[type="number"] {
+  width: 70px;
+  margin-left: 6px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.import-audio__bpm-alts {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chip-btn {
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  border-radius: 8px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.chip-btn:hover {
+  border-color: var(--color-violet);
+}
+
+.import-audio__segments {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+  font-size: 13px;
+}
+
+.import-audio__segments th {
+  text-align: left;
+  color: var(--color-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 6px;
+}
+
+.import-audio__segments td {
+  padding: 4px 6px;
+}
+
+.import-audio__segments input[type="number"],
+.import-audio__segments input[type="text"] {
+  width: 100%;
+  padding: 5px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 12.5px;
+}
+
+.import-audio__row--uncertain {
+  opacity: 0.65;
+}
+
+.confidence-badge {
+  font-size: 11px;
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.import-audio__save {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 14px 0;
+}
+
+.import-audio__save input {
+  padding: 9px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+}
+
+.import-audio__saved {
+  text-align: center;
+  color: var(--color-muted);
 }

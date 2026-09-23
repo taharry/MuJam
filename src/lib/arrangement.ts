@@ -4,7 +4,11 @@
 // `Arrangement.events`/`sections` produced here, instead of each piece
 // re-deriving beat positions its own way.
 
-export type ArrangementSource = "simplified" | "verified";
+// "imported" = a user's own corrected draft from the audio-import
+// estimator — distinct from "verified" (cross-checked against
+// published chord charts), so it's never silently presented with the
+// same authority.
+export type ArrangementSource = "simplified" | "verified" | "imported";
 
 export interface ArrangementEvent {
   chord: string;
@@ -61,7 +65,7 @@ export interface ArrangementInput {
 export class ArrangementError extends Error {}
 
 export function buildArrangement(input: ArrangementInput): Arrangement {
-  const source: ArrangementSource = input.source === "verified" ? "verified" : "simplified";
+  const source: ArrangementSource = input.source === "verified" || input.source === "imported" ? input.source : "simplified";
   const events: ArrangementEvent[] = [];
   const sections: ArrangementSection[] = [];
   const chordsById = new Map<string, ChordSlot[]>();

@@ -15,6 +15,7 @@ const PX_PER_BEAT = 18;
 const SOURCE_LABEL: Record<Arrangement["source"], string> = {
   verified: "Verified full arrangement",
   simplified: "Simplified progression",
+  imported: "Your imported draft",
 };
 
 // Reused by both internal practice mode and YouTube mode — it only

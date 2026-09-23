@@ -1,5 +1,5 @@
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { getSongById } from "../data/songs";
+import { resolveSong } from "../lib/customSongs";
 import { INSTRUMENTS, isInstrumentId } from "../data/instruments";
 import Player, { type ViewMode } from "../components/Player";
 import Divider from "../components/Divider";
@@ -13,7 +13,7 @@ export default function PlayerPage() {
     mode: string;
   }>();
   const navigate = useNavigate();
-  const song = songId ? getSongById(songId) : undefined;
+  const song = songId ? resolveSong(songId) : undefined;
   const viewMode = VALID_MODES.includes(mode as ViewMode) ? (mode as ViewMode) : "both";
 
   if (!song || !isInstrumentId(instrument)) return <Navigate to="/" replace />;

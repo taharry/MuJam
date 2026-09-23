@@ -1,5 +1,5 @@
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { getSongById } from "../data/songs";
+import { resolveSong } from "../lib/customSongs";
 import { INSTRUMENTS, type InstrumentId } from "../data/instruments";
 import Divider from "../components/Divider";
 import InstrumentCardArt from "../components/InstrumentCardArt";
@@ -13,7 +13,7 @@ const STRING_COUNT: Partial<Record<InstrumentId, number>> = {
 export default function SongDetail() {
   const { songId } = useParams<{ songId: string }>();
   const navigate = useNavigate();
-  const song = songId ? getSongById(songId) : undefined;
+  const song = songId ? resolveSong(songId) : undefined;
 
   if (!song) return <Navigate to="/" replace />;
 
