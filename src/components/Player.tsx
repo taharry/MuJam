@@ -5,7 +5,10 @@ import { inferSongKey, transposeChordSymbol } from "../lib/chordTheory";
 import { resolveCapoChord } from "../lib/capo";
 import { findActiveEventIndex, findActiveSection } from "../lib/arrangement";
 import { resolveStrumPattern } from "../lib/strum";
+import { supportsPlaybackRateControl } from "../lib/youtubeSync";
+import { getStoredSyncOffset, setStoredSyncOffset } from "../lib/syncOffsetStore";
 import { usePlaybackClock } from "../hooks/usePlaybackClock";
+import { useYouTubeSync } from "../hooks/useYouTubeSync";
 import ChordVisual from "./ChordVisual";
 import StrumGuide from "./StrumGuide";
 import EqualizerBars from "./EqualizerBars";
@@ -40,11 +43,48 @@ export default function Player({ song, instrument, mode }: Props) {
   const { events, sections, totalBeats, bpm, beatsPerBar } = arrangement;
 
   const clock = usePlaybackClock({ bpm, beatsPerBar, totalBeats });
-  const { beat, playing } = clock;
 
   const [showScale, setShowScale] = useState(false);
   const [transpose, setTranspose] = useState(0);
   const [capo, setCapo] = useState(0);
+  const [videoMode, setVideoMode] = useState(false);
+  const [syncOffset, setSyncOffset] = useState(() => getStoredSyncOffset(song.id));
+
+  const hasVideo = !!song.youtubeId;
+  const {
+    containerRef: youtubeContainerRef,
+    status: youtubeStatus,
+    errorMessage: youtubeError,
+    beat: youtubeBeat,
+    playing: youtubePlaying,
+    toggle: youtubeToggle,
+    seek: youtubeSeek,
+    availableRates: youtubeRates,
+    setPlaybackRate: setYoutubeRate,
+  } = useYouTubeSync({
+    videoId: song.youtubeId ?? "",
+    offsetSeconds: syncOffset,
+    bpm,
+    enabled: videoMode && hasVideo,
+  });
+  const videoActive = videoMode && hasVideo && youtubeStatus === "ready";
+
+  // The active mode's clock is authoritative for everything below —
+  // the video's own position when it's active and ready, the internal
+  // practice clock otherwise (including while the video is still
+  // loading or failed, so the UI never sits on a frozen/undefined beat).
+  const beat = videoActive ? youtubeBeat : clock.beat;
+  const playing = videoActive ? youtubePlaying : clock.playing;
+  const seek = videoActive ? youtubeSeek : clock.seek;
+  const toggle = videoActive ? youtubeToggle : clock.toggle;
+
+  function adjustSyncOffset(deltaSeconds: number) {
+    setSyncOffset((prev) => {
+      const next = Math.round((prev + deltaSeconds) * 10) / 10;
+      setStoredSyncOffset(song.id, next);
+      return next;
+    });
+  }
 
   const strumPattern = useMemo(
     () => resolveStrumPattern({ songPattern: song.strumPattern, genre: song.genre, beatsPerBar }),
@@ -70,7 +110,7 @@ export default function Player({ song, instrument, mode }: Props) {
 
   function goToIndex(index: number) {
     const clamped = Math.max(0, Math.min(events.length - 1, index));
-    clock.seek(events[clamped].startBeat);
+    seek(events[clamped].startBeat);
   }
 
   const currentIndex = findActiveEventIndex(events, beat);
@@ -122,11 +162,68 @@ export default function Player({ song, instrument, mode }: Props) {
             </select>
           </div>
         )}
+
+        {hasVideo && (
+          <button
+            className={`toggle-chip${videoMode ? " toggle-chip--active" : ""}`}
+            onClick={() => setVideoMode((v) => !v)}
+            aria-pressed={videoMode}
+          >
+            {videoMode ? "Practice mode" : "Watch on YouTube"}
+          </button>
+        )}
       </div>
       {capoSupported && capo > 0 && (
         <p className="settings-hint">
           Capo on fret {capo}: the chord name shows what sounds, the diagram shows the shape to finger.
         </p>
+      )}
+
+      {videoMode && hasVideo && (
+        <div className="youtube-panel">
+          {youtubeStatus === "error" ? (
+            <div className="youtube-panel__error">
+              <p>{youtubeError ?? "This video can't be played here."}</p>
+              <button className="btn" onClick={() => setVideoMode(false)}>
+                Switch to practice mode
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="youtube-embed">
+                <div ref={youtubeContainerRef} className="youtube-embed__iframe" />
+                {youtubeStatus === "loading" && <div className="youtube-embed__loading">Loading video…</div>}
+              </div>
+              <div className="youtube-sync">
+                <span>Sync offset: {syncOffset.toFixed(1)}s</span>
+                <button className="stepper-btn" onClick={() => adjustSyncOffset(-0.5)} aria-label="Nudge sync earlier">
+                  −
+                </button>
+                <button className="stepper-btn" onClick={() => adjustSyncOffset(0.5)} aria-label="Nudge sync later">
+                  +
+                </button>
+                {youtubeStatus === "ready" && supportsPlaybackRateControl(youtubeRates) && (
+                  <select
+                    className="speed-select"
+                    onChange={(e) => setYoutubeRate(Number(e.target.value))}
+                    defaultValue={1}
+                    aria-label="Video playback speed"
+                  >
+                    {youtubeRates.map((r) => (
+                      <option key={r} value={r}>
+                        {r}x
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <p className="settings-hint">
+                If the chords drift from the video, nudge the sync offset — hand-entered arrangements don't always
+                line up perfectly with a given upload.
+              </p>
+            </>
+          )}
+        </div>
       )}
 
       <div className="player__viewport">
@@ -184,43 +281,49 @@ export default function Player({ song, instrument, mode }: Props) {
         </button>
       </div>
 
-      <Timeline arrangement={arrangement} beat={beat} onSeek={clock.seek} />
+      <Timeline arrangement={arrangement} beat={beat} onSeek={seek} />
 
       {instrument !== "piano" && <StrumGuide pattern={strumPattern} beatPosition={beat} playing={playing} />}
 
       <div className="player__controls">
-        <button className="btn btn--primary btn--icon-label" onClick={clock.toggle}>
+        <button className="btn btn--primary btn--icon-label" onClick={toggle}>
           {playing ? <IconPause /> : <IconPlay />}
           {playing ? "Pause" : beat > 0 ? "Resume" : "Play"}
         </button>
-        <button className="btn btn--icon" onClick={clock.restart} title="Restart" aria-label="Restart">
+        <button className="btn btn--icon" onClick={() => seek(0)} title="Restart" aria-label="Restart">
           <IconRestart />
         </button>
-        <select
-          className="speed-select"
-          value={clock.speed}
-          onChange={(e) => clock.setSpeed(Number(e.target.value))}
-          aria-label="Playback speed"
-        >
-          <option value={0.5}>0.5x</option>
-          <option value={0.75}>0.75x</option>
-          <option value={1}>1x</option>
-          <option value={1.25}>1.25x</option>
-        </select>
-        <button
-          className={`toggle-chip${clock.metronome ? " toggle-chip--active" : ""}`}
-          onClick={() => clock.setMetronome(!clock.metronome)}
-          aria-pressed={clock.metronome}
-        >
-          <IconMetronome /> Metronome
-        </button>
-        <button
-          className={`toggle-chip${clock.loop ? " toggle-chip--active" : ""}`}
-          onClick={() => clock.setLoop(!clock.loop)}
-          aria-pressed={clock.loop}
-        >
-          <IconRepeat /> Loop
-        </button>
+        {!videoActive && (
+          <select
+            className="speed-select"
+            value={clock.speed}
+            onChange={(e) => clock.setSpeed(Number(e.target.value))}
+            aria-label="Playback speed"
+          >
+            <option value={0.5}>0.5x</option>
+            <option value={0.75}>0.75x</option>
+            <option value={1}>1x</option>
+            <option value={1.25}>1.25x</option>
+          </select>
+        )}
+        {!videoActive && (
+          <button
+            className={`toggle-chip${clock.metronome ? " toggle-chip--active" : ""}`}
+            onClick={() => clock.setMetronome(!clock.metronome)}
+            aria-pressed={clock.metronome}
+          >
+            <IconMetronome /> Metronome
+          </button>
+        )}
+        {!videoActive && (
+          <button
+            className={`toggle-chip${clock.loop ? " toggle-chip--active" : ""}`}
+            onClick={() => clock.setLoop(!clock.loop)}
+            aria-pressed={clock.loop}
+          >
+            <IconRepeat /> Loop
+          </button>
+        )}
         {inferredKey && (
           <button
             className={`toggle-chip${showScale ? " toggle-chip--active" : ""}`}

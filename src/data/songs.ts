@@ -188,6 +188,9 @@ export const SONGS: Song[] = [
       ["down", "rest", "rest", "up", "down", "rest", "rest", "up"],
       "A gentle, spacious ballad strum — let each chord ring out; the up-strokes are soft pickups into the next downbeat."
     ),
+    // The Beatles' official "Let It Be" video — for in-app synced
+    // playback only, not a claim that its chords were detected from it.
+    youtubeId: "CGj85pVzRJs",
   },
   {
     id: "stand-by-me",
@@ -310,6 +313,9 @@ export const SONGS: Song[] = [
       ["down", "rest", "down", "up", "up", "down", "up", "rest"],
       "The famous \"D D U U D U\" Wonderwall strum — a syncopated six-stroke pattern taught identically in most tutorials."
     ),
+    // Oasis's official "Wonderwall" video — for in-app synced playback
+    // only, not a claim that its chords were detected from it.
+    youtubeId: "bx1Bh8ZvH84",
   },
   {
     id: "someone-like-you",
