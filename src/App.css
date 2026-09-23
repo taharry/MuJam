@@ -673,6 +673,20 @@ body::after {
   background: none;
 }
 
+.player__chord-name--unsupported {
+  font-size: 28px;
+  -webkit-text-fill-color: var(--color-muted);
+  color: var(--color-muted);
+  background: none;
+  text-shadow: none;
+}
+
+.player__chord-shape-hint {
+  font-size: 13px;
+  color: var(--color-muted);
+  margin-top: 2px;
+}
+
 .player__next {
   opacity: 0.75;
   text-align: center;
@@ -913,4 +927,96 @@ body::after {
   fill: var(--color-gold);
   stroke: none;
   filter: drop-shadow(0 0 6px rgba(255, 182, 72, 0.6));
+}
+
+/* Transpose / capo settings row */
+.player__settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.transpose-controls,
+.capo-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 12.5px;
+}
+
+.transpose-controls__label,
+.capo-controls label {
+  color: var(--color-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 11px;
+}
+
+.stepper-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-text);
+  font-size: 16px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.stepper-btn:hover {
+  border-color: var(--color-violet);
+  transform: translateY(-1px);
+}
+
+.transpose-controls__value {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.transpose-controls__reset {
+  border: none;
+  background: none;
+  color: var(--color-violet);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+}
+
+.capo-controls select {
+  border: none;
+  background: none;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-hint {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--color-muted);
+  max-width: 480px;
+  margin: 0 auto 16px;
+  line-height: 1.5;
 }

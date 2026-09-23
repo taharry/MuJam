@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Song } from "../data/songs";
+import { getArrangement, type Song } from "../data/songs";
 import type { InstrumentId } from "../data/instruments";
-import { inferSongKey } from "../lib/chordTheory";
+import { inferSongKey, transposeChordSymbol } from "../lib/chordTheory";
+import { resolveCapoChord } from "../lib/capo";
+import { findActiveEventIndex, findActiveSection } from "../lib/arrangement";
 import ChordVisual from "./ChordVisual";
 import StrumGuide from "./StrumGuide";
 import EqualizerBars from "./EqualizerBars";
@@ -25,24 +27,10 @@ interface Props {
   mode: ViewMode;
 }
 
-interface FlatEvent {
-  chord: string;
-  section: string;
-  startBeat: number;
-  beats: number;
-}
-
-function flatten(song: Song): { events: FlatEvent[]; totalBeats: number } {
-  const events: FlatEvent[] = [];
-  let cursor = 0;
-  for (const section of song.sections) {
-    for (const e of section.chords) {
-      events.push({ chord: e.chord, section: section.name, startBeat: cursor, beats: e.beats });
-      cursor += e.beats;
-    }
-  }
-  return { events, totalBeats: cursor };
-}
+// Basses are almost never played with a capo in practice; piano must
+// always show sounding pitches, so it never gets one either.
+const CAPO_INSTRUMENTS: InstrumentId[] = ["guitar", "ukulele"];
+const MAX_CAPO_FRET = 12;
 
 function playClick(ctx: AudioContext, accent: boolean) {
   const osc = ctx.createOscillator();
@@ -56,20 +44,40 @@ function playClick(ctx: AudioContext, accent: boolean) {
 }
 
 export default function Player({ song, instrument, mode }: Props) {
-  const { events, totalBeats } = useMemo(() => flatten(song), [song]);
+  const arrangement = useMemo(() => getArrangement(song), [song]);
+  const { events, sections, totalBeats, bpm, beatsPerBar } = arrangement;
+
   const [beat, setBeat] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [metronome, setMetronome] = useState(true);
   const [loop, setLoop] = useState(true);
   const [showScale, setShowScale] = useState(false);
-  const inferredKey = useMemo(() => inferSongKey(events), [events]);
+  const [transpose, setTranspose] = useState(0);
+  const [capo, setCapo] = useState(0);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<number | null>(null);
   const lastTickRef = useRef(0);
   const rafRef = useRef<number | null>(null);
   const [strumSlot, setStrumSlot] = useState(0);
+
+  const capoSupported = CAPO_INSTRUMENTS.includes(instrument);
+  const effectiveCapo = capoSupported ? capo : 0;
+
+  function display(rawChord: string) {
+    return resolveCapoChord(rawChord, transpose, effectiveCapo);
+  }
+
+  // Key inference only cares about what actually sounds, never about
+  // which shape a capo lets you finger — so it transposes but ignores capo.
+  const inferredKey = useMemo(() => {
+    const soundingEvents = events.map((e) => ({
+      chord: transpose !== 0 ? (transposeChordSymbol(e.chord, transpose) ?? e.chord) : e.chord,
+      beats: e.durationBeats,
+    }));
+    return inferSongKey(soundingEvents);
+  }, [events, transpose]);
 
   useEffect(() => {
     return () => {
@@ -84,13 +92,13 @@ export default function Player({ song, instrument, mode }: Props) {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
       return;
     }
-    const msPerBeat = (60000 / song.bpm) / speed;
+    const msPerBeat = 60000 / bpm / speed;
     intervalRef.current = window.setInterval(() => {
       lastTickRef.current = performance.now();
       setBeat((b) => {
         const nextBeat = b + 1;
         if (metronome && audioCtxRef.current) {
-          const beatInBar = nextBeat % song.beatsPerBar;
+          const beatInBar = nextBeat % beatsPerBar;
           playClick(audioCtxRef.current, beatInBar === 0);
         }
         if (nextBeat >= totalBeats) {
@@ -104,8 +112,7 @@ export default function Player({ song, instrument, mode }: Props) {
     return () => {
       if (intervalRef.current) window.clearInterval(intervalRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, speed, metronome, loop]);
+  }, [playing, speed, metronome, loop, bpm, beatsPerBar, totalBeats]);
 
   // Drives the strum-pattern highlight at eighth-note resolution, derived
   // from the same clock as the beat interval above (rather than a second
@@ -115,7 +122,7 @@ export default function Player({ song, instrument, mode }: Props) {
       setStrumSlot(0);
       return;
     }
-    const msPerBeat = (60000 / song.bpm) / speed;
+    const msPerBeat = 60000 / bpm / speed;
     function tick() {
       const elapsed = performance.now() - lastTickRef.current;
       const frac = Math.min(elapsed / msPerBeat, 0.999);
@@ -126,7 +133,7 @@ export default function Player({ song, instrument, mode }: Props) {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
-  }, [playing, speed, song.bpm]);
+  }, [playing, speed, bpm]);
 
   function toggle() {
     if (!audioCtxRef.current) {
@@ -148,19 +155,69 @@ export default function Player({ song, instrument, mode }: Props) {
     setBeat(events[clamped].startBeat);
   }
 
-  const currentIndex = events.findIndex(
-    (e) => beat >= e.startBeat && beat < e.startBeat + e.beats
-  );
+  const currentIndex = findActiveEventIndex(events, beat);
   const current = events[currentIndex] ?? events[0];
   const upcoming = events[currentIndex + 1];
+  const currentSection = findActiveSection(sections, beat);
+  const currentDisplay = current ? display(current.chord) : null;
+  const upcomingDisplay = upcoming ? display(upcoming.chord) : null;
   const progressPct = totalBeats ? (beat / totalBeats) * 100 : 0;
   const showDiagram = mode === "visual" || mode === "both";
   const showChordName = mode === "chords" || mode === "both";
-  const beatInBar = beat % song.beatsPerBar;
+  const beatInBar = beat % beatsPerBar;
   const activeStrumIndex = playing ? beatInBar * 2 + strumSlot : -1;
 
   return (
     <div className="player">
+      <div className="player__settings-row">
+        <div className="transpose-controls">
+          <span className="transpose-controls__label">Transpose</span>
+          <button
+            className="stepper-btn"
+            onClick={() => setTranspose((t) => t - 1)}
+            aria-label="Transpose down one semitone"
+          >
+            −
+          </button>
+          <span className="transpose-controls__value">{transpose > 0 ? `+${transpose}` : transpose}</span>
+          <button
+            className="stepper-btn"
+            onClick={() => setTranspose((t) => t + 1)}
+            aria-label="Transpose up one semitone"
+          >
+            +
+          </button>
+          {transpose !== 0 && (
+            <button className="transpose-controls__reset" onClick={() => setTranspose(0)}>
+              Reset
+            </button>
+          )}
+        </div>
+
+        {capoSupported && (
+          <div className="capo-controls">
+            <label htmlFor="capo-select">Capo</label>
+            <select
+              id="capo-select"
+              value={capo}
+              onChange={(e) => setCapo(Number(e.target.value))}
+            >
+              <option value={0}>None</option>
+              {Array.from({ length: MAX_CAPO_FRET }, (_, i) => i + 1).map((fret) => (
+                <option key={fret} value={fret}>
+                  Fret {fret}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+      {capoSupported && capo > 0 && (
+        <p className="settings-hint">
+          Capo on fret {capo}: the chord name shows what sounds, the diagram shows the shape to finger.
+        </p>
+      )}
+
       <div className="player__viewport">
         <button
           className="nav-arrow"
@@ -174,21 +231,30 @@ export default function Player({ song, instrument, mode }: Props) {
         <div className="player__stage">
           <div className="player__now" key={currentIndex}>
             <div className="player__section-row">
-              <span className="player__section">{current?.section}</span>
+              <span className="player__section">{currentSection?.name}</span>
               <EqualizerBars active={playing} />
             </div>
-            {showChordName && <div className="player__chord-name">{current?.chord}</div>}
+            {showChordName && currentDisplay && (
+              <>
+                <div className={`player__chord-name${currentDisplay.unsupported ? " player__chord-name--unsupported" : ""}`}>
+                  {currentDisplay.unsupported ? "Unsupported chord" : currentDisplay.soundingChord}
+                </div>
+                {!currentDisplay.unsupported && currentDisplay.shapeChord !== currentDisplay.soundingChord && (
+                  <div className="player__chord-shape-hint">shape: {currentDisplay.shapeChord}</div>
+                )}
+              </>
+            )}
             {showDiagram && (
-              <ChordVisual instrument={instrument} chord={current?.chord ?? ""} size={220} highlight />
+              <ChordVisual instrument={instrument} chord={currentDisplay?.shapeChord ?? ""} size={220} highlight />
             )}
           </div>
-          {upcoming && (
+          {upcoming && upcomingDisplay && (
             <div className="player__next">
               {showDiagram ? (
-                <ChordVisual instrument={instrument} chord={upcoming.chord} size={90} />
+                <ChordVisual instrument={instrument} chord={upcomingDisplay.shapeChord ?? ""} size={90} />
               ) : (
                 <div className="player__chord-name player__chord-name--small">
-                  {upcoming.chord}
+                  {upcomingDisplay.unsupported ? "?" : upcomingDisplay.soundingChord}
                 </div>
               )}
             </div>
@@ -211,21 +277,25 @@ export default function Player({ song, instrument, mode }: Props) {
 
       {mode !== "visual" && (
         <div className="chord-strip">
-          {events.map((e, i) => (
-            <button
-              key={`${e.chord}-${e.startBeat}`}
-              className={`chord-strip__item${i === currentIndex ? " chord-strip__item--active" : ""}`}
-              onClick={() => goToIndex(i)}
-              title={`Jump to this ${e.chord}`}
-            >
-              {e.chord}
-            </button>
-          ))}
+          {events.map((e, i) => {
+            const d = display(e.chord);
+            const label = d.unsupported ? "?" : d.soundingChord;
+            return (
+              <button
+                key={`${e.chord}-${e.startBeat}`}
+                className={`chord-strip__item${i === currentIndex ? " chord-strip__item--active" : ""}`}
+                onClick={() => goToIndex(i)}
+                title={`Jump to this ${label}`}
+              >
+                {label}
+              </button>
+            );
+          })}
         </div>
       )}
 
       {instrument !== "piano" && (
-        <StrumGuide genre={song.genre} beatsPerBar={song.beatsPerBar} activeIndex={activeStrumIndex} />
+        <StrumGuide genre={song.genre} beatsPerBar={beatsPerBar} activeIndex={activeStrumIndex} />
       )}
 
       <div className="player__controls">
