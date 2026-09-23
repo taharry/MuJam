@@ -22,7 +22,7 @@ export interface StrumPattern {
   tip: string;
 }
 
-function makePattern(
+export function makePattern(
   source: StrumPatternSource,
   cycleBeats: number,
   subdivision: number,

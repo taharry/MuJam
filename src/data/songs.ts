@@ -1,5 +1,5 @@
 import { buildArrangement, type Arrangement, type SectionBlueprint } from "../lib/arrangement";
-import type { StrumPattern } from "../lib/strum";
+import { makePattern, type StrumPattern } from "../lib/strum";
 
 export type Genre =
   | "pop"
@@ -151,6 +151,43 @@ export const SONGS: Song[] = [
         { chord: "F", beats: 4 }, { chord: "C", beats: 4 },
       ] },
     ],
+    // Cross-checked against multiple published chord charts (see
+    // README's "verified arrangements" note). Condensed to one
+    // representative pass through each section rather than the full
+    // 6-verse album cut, and omits the bridge/guitar-solo section
+    // (whose exact bar count varies across sources) to avoid guessing.
+    verifiedArrangement: {
+      sections: [
+        { id: "lib-verse", name: "Intro", chords: [
+          { chord: "C", beats: 4 }, { chord: "G", beats: 4 },
+          { chord: "Am", beats: 4 }, { chord: "F", beats: 4 },
+          { chord: "C", beats: 4 }, { chord: "G", beats: 4 },
+          { chord: "F", beats: 4 }, { chord: "C", beats: 4 },
+        ] },
+        { name: "Verse 1", ref: "lib-verse" },
+        { id: "lib-chorus", name: "Chorus", chords: [
+          { chord: "Am", beats: 4 }, { chord: "G", beats: 4 },
+          { chord: "F", beats: 4 }, { chord: "C", beats: 4 },
+          { chord: "C", beats: 4 }, { chord: "G", beats: 4 },
+          { chord: "F", beats: 4 }, { chord: "C", beats: 4 },
+        ] },
+        { name: "Verse 2", ref: "lib-verse" },
+        { name: "Chorus", ref: "lib-chorus" },
+        { name: "Verse 3", ref: "lib-verse" },
+        { name: "Chorus", ref: "lib-chorus" },
+        { name: "Outro", chords: [
+          { chord: "C", beats: 4 }, { chord: "G", beats: 4 },
+          { chord: "F", beats: 4 }, { chord: "C", beats: 8 },
+        ] },
+      ],
+    },
+    strumPattern: makePattern(
+      "song",
+      4,
+      2,
+      ["down", "rest", "rest", "up", "down", "rest", "rest", "up"],
+      "A gentle, spacious ballad strum — let each chord ring out; the up-strokes are soft pickups into the next downbeat."
+    ),
   },
   {
     id: "stand-by-me",
@@ -234,6 +271,45 @@ export const SONGS: Song[] = [
         { chord: "Em", beats: 4 }, { chord: "Em", beats: 4 },
       ] },
     ],
+    // Cross-checked against multiple published chord charts. Uses the
+    // recording's actual chords (Em7/Dsus4/A7sus4/Cadd9), not the
+    // simplified Em/D/A/C above — including Cadd9, which this app's
+    // chord vocabulary doesn't support yet, so it deliberately renders
+    // as "Unsupported chord" rather than being silently swapped for a
+    // plain C. Pre-chorus is condensed to one representative pass
+    // rather than the full repeat count, and a low-confidence passing
+    // chord (a slash chord noted on some charts) is omitted.
+    verifiedArrangement: {
+      sections: [
+        { id: "ww-vamp", name: "Intro", chords: [
+          { chord: "Em7", beats: 4 }, { chord: "G", beats: 4 },
+          { chord: "Dsus4", beats: 4 }, { chord: "A7sus4", beats: 4 },
+        ], repeat: 4 },
+        { name: "Verse 1", ref: "ww-vamp", repeat: 2 },
+        { id: "ww-prechorus", name: "Pre-Chorus", chords: [
+          { chord: "Cadd9", beats: 4 }, { chord: "Dsus4", beats: 4 },
+          { chord: "Em7", beats: 4 }, { chord: "Em7", beats: 4 },
+        ], repeat: 2 },
+        { id: "ww-chorus", name: "Chorus", chords: [
+          { chord: "Cadd9", beats: 4 }, { chord: "Em7", beats: 4 },
+          { chord: "G", beats: 4 }, { chord: "Em", beats: 4 },
+        ], repeat: 3 },
+        { name: "Verse 2", ref: "ww-vamp", repeat: 2 },
+        { name: "Pre-Chorus", ref: "ww-prechorus", repeat: 2 },
+        { name: "Chorus", ref: "ww-chorus", repeat: 4 },
+        { name: "Outro", chords: [
+          { chord: "Cadd9", beats: 4 }, { chord: "Em7", beats: 4 },
+          { chord: "G", beats: 4 }, { chord: "Em", beats: 4 },
+        ], repeat: 2 },
+      ],
+    },
+    strumPattern: makePattern(
+      "song",
+      4,
+      2,
+      ["down", "rest", "down", "up", "up", "down", "up", "rest"],
+      "The famous \"D D U U D U\" Wonderwall strum — a syncopated six-stroke pattern taught identically in most tutorials."
+    ),
   },
   {
     id: "someone-like-you",

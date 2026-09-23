@@ -17,12 +17,11 @@ export function resolveCapoChord(
   transposeSemitones: number,
   capoFret: number
 ): CapoResolution {
-  if (transposeSemitones === 0 && capoFret === 0) {
-    return { soundingChord: originalChord, shapeChord: originalChord, unsupported: false };
-  }
-
-  const soundingChord =
-    transposeSemitones !== 0 ? transposeChordSymbol(originalChord, transposeSemitones) : originalChord;
+  // Always resolve through the parser, even at transpose 0 / capo 0 —
+  // an unsupported symbol (e.g. Cadd9) should be reported as such
+  // regardless of the current transpose/capo settings, not only once
+  // the user actually tries to transform it.
+  const soundingChord = transposeChordSymbol(originalChord, transposeSemitones);
 
   if (soundingChord === null) {
     return { soundingChord: originalChord, shapeChord: null, unsupported: true };

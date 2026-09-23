@@ -31,4 +31,9 @@ describe("resolveCapoChord", () => {
     expect(r.unsupported).toBe(true);
     expect(r.shapeChord).toBeNull();
   });
+
+  it("reports unsupported even at transpose 0 / capo 0, not just once a transform is attempted", () => {
+    const r = resolveCapoChord("Cadd9", 0, 0);
+    expect(r.unsupported).toBe(true);
+  });
 });
