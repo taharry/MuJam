@@ -1,31 +1,40 @@
-import { getStrumPattern, type StrumSymbol } from "../data/strumPatterns";
-import type { Genre } from "../data/songs";
+import { activeStrumStepIndex, type StrumPattern } from "../lib/strum";
 
 interface Props {
-  genre: Genre;
-  beatsPerBar: number;
-  activeIndex?: number;
+  pattern: StrumPattern;
+  beatPosition: number;
+  playing: boolean;
 }
 
-const SYMBOL_LABEL: Record<StrumSymbol, string> = { D: "↓", U: "↑", "-": "" };
-const SYMBOL_NAME: Record<StrumSymbol, string> = { D: "down", U: "up", "-": "skip" };
+const STROKE_LABEL: Record<StrumPattern["steps"][number]["stroke"], string> = { down: "↓", up: "↑", rest: "" };
 
-export default function StrumGuide({ genre, beatsPerBar, activeIndex = -1 }: Props) {
-  const pattern = getStrumPattern(genre, beatsPerBar);
+const SOURCE_LABEL: Record<StrumPattern["source"], string> = {
+  song: "Song-specific",
+  genre: "Genre suggestion",
+  default: "Generic pattern",
+};
+
+export default function StrumGuide({ pattern, beatPosition, playing }: Props) {
+  const activeIndex = playing ? activeStrumStepIndex(pattern, beatPosition) : -1;
 
   return (
     <div className="strum-guide">
-      <div className="strum-guide__title">Suggested strum pattern</div>
+      <div className="strum-guide__header">
+        <span className="strum-guide__title">Suggested strum pattern</span>
+        <span className={`strum-guide__source strum-guide__source--${pattern.source}`}>
+          {SOURCE_LABEL[pattern.source]}
+        </span>
+      </div>
       <div className="strum-guide__row">
-        {pattern.symbols.map((s, i) => (
+        {pattern.steps.map((step, i) => (
           <span
             key={i}
-            className={`strum-guide__cell strum-guide__cell--${SYMBOL_NAME[s]}${
+            className={`strum-guide__cell strum-guide__cell--${step.stroke}${
               i === activeIndex ? " strum-guide__cell--now" : ""
             }`}
-            title={SYMBOL_NAME[s]}
+            title={step.stroke}
           >
-            {SYMBOL_LABEL[s]}
+            {STROKE_LABEL[step.stroke]}
           </span>
         ))}
       </div>

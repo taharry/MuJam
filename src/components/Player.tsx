@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { getArrangement, type Song } from "../data/songs";
 import type { InstrumentId } from "../data/instruments";
 import { inferSongKey, transposeChordSymbol } from "../lib/chordTheory";
 import { resolveCapoChord } from "../lib/capo";
 import { findActiveEventIndex, findActiveSection } from "../lib/arrangement";
+import { resolveStrumPattern } from "../lib/strum";
+import { usePlaybackClock } from "../hooks/usePlaybackClock";
 import ChordVisual from "./ChordVisual";
 import StrumGuide from "./StrumGuide";
 import EqualizerBars from "./EqualizerBars";
@@ -32,35 +34,21 @@ interface Props {
 const CAPO_INSTRUMENTS: InstrumentId[] = ["guitar", "ukulele"];
 const MAX_CAPO_FRET = 12;
 
-function playClick(ctx: AudioContext, accent: boolean) {
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.frequency.value = accent ? 1200 : 800;
-  gain.gain.setValueAtTime(0.15, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.08);
-}
-
 export default function Player({ song, instrument, mode }: Props) {
   const arrangement = useMemo(() => getArrangement(song), [song]);
   const { events, sections, totalBeats, bpm, beatsPerBar } = arrangement;
 
-  const [beat, setBeat] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [speed, setSpeed] = useState(1);
-  const [metronome, setMetronome] = useState(true);
-  const [loop, setLoop] = useState(true);
+  const clock = usePlaybackClock({ bpm, beatsPerBar, totalBeats });
+  const { beat, playing } = clock;
+
   const [showScale, setShowScale] = useState(false);
   const [transpose, setTranspose] = useState(0);
   const [capo, setCapo] = useState(0);
 
-  const audioCtxRef = useRef<AudioContext | null>(null);
-  const intervalRef = useRef<number | null>(null);
-  const lastTickRef = useRef(0);
-  const rafRef = useRef<number | null>(null);
-  const [strumSlot, setStrumSlot] = useState(0);
+  const strumPattern = useMemo(
+    () => resolveStrumPattern({ songPattern: song.strumPattern, genre: song.genre, beatsPerBar }),
+    [song.strumPattern, song.genre, beatsPerBar]
+  );
 
   const capoSupported = CAPO_INSTRUMENTS.includes(instrument);
   const effectiveCapo = capoSupported ? capo : 0;
@@ -79,80 +67,9 @@ export default function Player({ song, instrument, mode }: Props) {
     return inferSongKey(soundingEvents);
   }, [events, transpose]);
 
-  useEffect(() => {
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      audioCtxRef.current?.close();
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!playing) {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-      return;
-    }
-    const msPerBeat = 60000 / bpm / speed;
-    intervalRef.current = window.setInterval(() => {
-      lastTickRef.current = performance.now();
-      setBeat((b) => {
-        const nextBeat = b + 1;
-        if (metronome && audioCtxRef.current) {
-          const beatInBar = nextBeat % beatsPerBar;
-          playClick(audioCtxRef.current, beatInBar === 0);
-        }
-        if (nextBeat >= totalBeats) {
-          if (loop) return 0;
-          setPlaying(false);
-          return totalBeats - 1;
-        }
-        return nextBeat;
-      });
-    }, msPerBeat);
-    return () => {
-      if (intervalRef.current) window.clearInterval(intervalRef.current);
-    };
-  }, [playing, speed, metronome, loop, bpm, beatsPerBar, totalBeats]);
-
-  // Drives the strum-pattern highlight at eighth-note resolution, derived
-  // from the same clock as the beat interval above (rather than a second
-  // independent timer) so it can't drift out of sync with playback.
-  useEffect(() => {
-    if (!playing) {
-      setStrumSlot(0);
-      return;
-    }
-    const msPerBeat = 60000 / bpm / speed;
-    function tick() {
-      const elapsed = performance.now() - lastTickRef.current;
-      const frac = Math.min(elapsed / msPerBeat, 0.999);
-      setStrumSlot(frac < 0.5 ? 0 : 1);
-      rafRef.current = requestAnimationFrame(tick);
-    }
-    rafRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [playing, speed, bpm]);
-
-  function toggle() {
-    if (!audioCtxRef.current) {
-      audioCtxRef.current = new AudioContext();
-    }
-    if (beat >= totalBeats - 1 && !playing) {
-      setBeat(0);
-    }
-    lastTickRef.current = performance.now();
-    setPlaying((p) => !p);
-  }
-
-  function restart() {
-    setBeat(0);
-  }
-
   function goToIndex(index: number) {
     const clamped = Math.max(0, Math.min(events.length - 1, index));
-    setBeat(events[clamped].startBeat);
+    clock.seek(events[clamped].startBeat);
   }
 
   const currentIndex = findActiveEventIndex(events, beat);
@@ -164,8 +81,6 @@ export default function Player({ song, instrument, mode }: Props) {
   const progressPct = totalBeats ? (beat / totalBeats) * 100 : 0;
   const showDiagram = mode === "visual" || mode === "both";
   const showChordName = mode === "chords" || mode === "both";
-  const beatInBar = beat % beatsPerBar;
-  const activeStrumIndex = playing ? beatInBar * 2 + strumSlot : -1;
 
   return (
     <div className="player">
@@ -197,11 +112,7 @@ export default function Player({ song, instrument, mode }: Props) {
         {capoSupported && (
           <div className="capo-controls">
             <label htmlFor="capo-select">Capo</label>
-            <select
-              id="capo-select"
-              value={capo}
-              onChange={(e) => setCapo(Number(e.target.value))}
-            >
+            <select id="capo-select" value={capo} onChange={(e) => setCapo(Number(e.target.value))}>
               <option value={0}>None</option>
               {Array.from({ length: MAX_CAPO_FRET }, (_, i) => i + 1).map((fret) => (
                 <option key={fret} value={fret}>
@@ -236,7 +147,9 @@ export default function Player({ song, instrument, mode }: Props) {
             </div>
             {showChordName && currentDisplay && (
               <>
-                <div className={`player__chord-name${currentDisplay.unsupported ? " player__chord-name--unsupported" : ""}`}>
+                <div
+                  className={`player__chord-name${currentDisplay.unsupported ? " player__chord-name--unsupported" : ""}`}
+                >
                   {currentDisplay.unsupported ? "Unsupported chord" : currentDisplay.soundingChord}
                 </div>
                 {!currentDisplay.unsupported && currentDisplay.shapeChord !== currentDisplay.soundingChord && (
@@ -294,22 +207,20 @@ export default function Player({ song, instrument, mode }: Props) {
         </div>
       )}
 
-      {instrument !== "piano" && (
-        <StrumGuide genre={song.genre} beatsPerBar={beatsPerBar} activeIndex={activeStrumIndex} />
-      )}
+      {instrument !== "piano" && <StrumGuide pattern={strumPattern} beatPosition={beat} playing={playing} />}
 
       <div className="player__controls">
-        <button className="btn btn--primary btn--icon-label" onClick={toggle}>
+        <button className="btn btn--primary btn--icon-label" onClick={clock.toggle}>
           {playing ? <IconPause /> : <IconPlay />}
           {playing ? "Pause" : beat > 0 ? "Resume" : "Play"}
         </button>
-        <button className="btn btn--icon" onClick={restart} title="Restart" aria-label="Restart">
+        <button className="btn btn--icon" onClick={clock.restart} title="Restart" aria-label="Restart">
           <IconRestart />
         </button>
         <select
           className="speed-select"
-          value={speed}
-          onChange={(e) => setSpeed(Number(e.target.value))}
+          value={clock.speed}
+          onChange={(e) => clock.setSpeed(Number(e.target.value))}
           aria-label="Playback speed"
         >
           <option value={0.5}>0.5x</option>
@@ -318,16 +229,16 @@ export default function Player({ song, instrument, mode }: Props) {
           <option value={1.25}>1.25x</option>
         </select>
         <button
-          className={`toggle-chip${metronome ? " toggle-chip--active" : ""}`}
-          onClick={() => setMetronome((m) => !m)}
-          aria-pressed={metronome}
+          className={`toggle-chip${clock.metronome ? " toggle-chip--active" : ""}`}
+          onClick={() => clock.setMetronome(!clock.metronome)}
+          aria-pressed={clock.metronome}
         >
           <IconMetronome /> Metronome
         </button>
         <button
-          className={`toggle-chip${loop ? " toggle-chip--active" : ""}`}
-          onClick={() => setLoop((l) => !l)}
-          aria-pressed={loop}
+          className={`toggle-chip${clock.loop ? " toggle-chip--active" : ""}`}
+          onClick={() => clock.setLoop(!clock.loop)}
+          aria-pressed={clock.loop}
         >
           <IconRepeat /> Loop
         </button>

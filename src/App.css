@@ -749,13 +749,37 @@ body::after {
   margin-bottom: 22px;
 }
 
+.strum-guide__header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .strum-guide__title {
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--color-muted);
-  margin-bottom: 10px;
+}
+
+.strum-guide__source {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+}
+
+.strum-guide__source--song {
+  color: #1a1408;
+  background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
+  border-color: transparent;
 }
 
 .strum-guide__row {
@@ -792,7 +816,7 @@ body::after {
   color: #1a1408;
 }
 
-.strum-guide__cell--skip {
+.strum-guide__cell--rest {
   opacity: 0.3;
 }
 
