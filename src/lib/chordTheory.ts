@@ -38,15 +38,18 @@ export function parseChord(symbol: string): ParsedChord | null {
   const rootIndex = NOTE_NAMES.indexOf(root as (typeof NOTE_NAMES)[number]);
   if (rootIndex === -1) return null;
 
-  let quality: ChordQuality = "major";
-  if (suffix === "m") quality = "minor";
+  let quality: ChordQuality;
+  if (suffix === "") quality = "major";
+  else if (suffix === "m") quality = "minor";
   else if (suffix === "7") quality = "7";
   else if (suffix === "maj7" || suffix === "M7") quality = "maj7";
   else if (suffix === "m7") quality = "m7";
   else if (suffix === "sus4") quality = "sus4";
   else if (suffix === "sus2") quality = "sus2";
   else if (suffix === "dim") quality = "dim";
-  else if (suffix === "") quality = "major";
+  // Unrecognized extension (add9, 6, 9, sus, slash chords, ...): report
+  // as unsupported instead of silently collapsing it to a major triad.
+  else return null;
 
   return { root, rootIndex, quality };
 }
@@ -56,6 +59,31 @@ export function getChordNoteIndices(symbol: string): number[] | null {
   if (!parsed) return null;
   const intervals = QUALITY_INTERVALS[parsed.quality];
   return intervals.map((i) => (parsed.rootIndex + i) % 12);
+}
+
+const QUALITY_SUFFIX: Record<ChordQuality, string> = {
+  major: "", minor: "m", "7": "7", maj7: "maj7", m7: "m7",
+  sus4: "sus4", sus2: "sus2", dim: "dim",
+};
+
+// Normalizes any enharmonic spelling (Ab, G#, ...) to one canonical
+// sharp-based symbol, so chord-shape dictionaries only need one key
+// per pitch instead of a flat/sharp duplicate for each.
+export function canonicalizeChordSymbol(symbol: string): string | null {
+  const parsed = parseChord(symbol);
+  if (!parsed) return null;
+  return parsed.root + QUALITY_SUFFIX[parsed.quality];
+}
+
+// Shifts a chord's root by semitones while preserving quality/extension
+// (minor stays minor, 7ths stay 7ths, etc). Returns null if the symbol
+// isn't one parseChord recognizes, so callers can show a clear
+// "unsupported" state instead of guessing.
+export function transposeChordSymbol(symbol: string, semitones: number): string | null {
+  const parsed = parseChord(symbol);
+  if (!parsed) return null;
+  const newIndex = (((parsed.rootIndex + semitones) % 12) + 12) % 12;
+  return NOTE_NAMES[newIndex] + QUALITY_SUFFIX[parsed.quality];
 }
 
 export type ScaleMode = "major" | "minor";
@@ -96,18 +124,4 @@ export function inferSongKey(events: { chord: string; beats: number }[]): Inferr
   }
   if (!best) return null;
   return { root: NOTE_NAMES[best.rootIndex], rootIndex: best.rootIndex, mode: best.mode };
-}
-
-const QUALITY_SUFFIX: Record<ChordQuality, string> = {
-  major: "", minor: "m", "7": "7", maj7: "maj7", m7: "m7",
-  sus4: "sus4", sus2: "sus2", dim: "dim",
-};
-
-// Normalizes any enharmonic spelling (Ab, G#, ...) to one canonical
-// sharp-based symbol, so chord-shape dictionaries only need one key
-// per pitch instead of a flat/sharp duplicate for each.
-export function canonicalizeChordSymbol(symbol: string): string | null {
-  const parsed = parseChord(symbol);
-  if (!parsed) return null;
-  return parsed.root + QUALITY_SUFFIX[parsed.quality];
 }

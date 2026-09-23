@@ -1,3 +1,6 @@
+import { buildArrangement, type Arrangement, type SectionBlueprint } from "../lib/arrangement";
+import type { StrumPattern } from "../lib/strum";
+
 export type Genre =
   | "pop"
   | "rock"
@@ -34,7 +37,42 @@ export interface Song {
   beatsPerBar: number;
   genre: Genre;
   difficulty: Difficulty;
+  /** Simplified progression: every song has this. Used unless `verifiedArrangement` is present. */
   sections: Section[];
+  /**
+   * A carefully entered, section-accurate arrangement for a small set of
+   * showcase songs. When present, this is what plays instead of the
+   * simplified `sections` above — see getArrangement().
+   */
+  verifiedArrangement?: { sections: SectionBlueprint[]; expectedTotalBeats?: number };
+  /** Recommended strum pattern specific to this song/recording, if one has been entered. */
+  strumPattern?: StrumPattern;
+  /** YouTube video id for in-app synced playback (not a claim that chords were auto-detected from it). */
+  youtubeId?: string;
+}
+
+// Builds the shared, flattened playback timeline for a song: the
+// verified arrangement if one has been entered, otherwise the
+// simplified progression. Every consumer (player, diagrams, strum
+// guide, timeline, seek controls) should read this instead of walking
+// `song.sections` directly, so they can never disagree about beat
+// positions.
+export function getArrangement(song: Song): Arrangement {
+  if (song.verifiedArrangement) {
+    return buildArrangement({
+      source: "verified",
+      bpm: song.bpm,
+      beatsPerBar: song.beatsPerBar,
+      sections: song.verifiedArrangement.sections,
+      expectedTotalBeats: song.verifiedArrangement.expectedTotalBeats,
+    });
+  }
+  return buildArrangement({
+    source: "simplified",
+    bpm: song.bpm,
+    beatsPerBar: song.beatsPerBar,
+    sections: song.sections.map((s) => ({ name: s.name, chords: s.chords })),
+  });
 }
 
 // Chord progressions below are commonly published, factual chord
