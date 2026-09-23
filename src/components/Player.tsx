@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Song } from "../data/songs";
 import type { InstrumentId } from "../data/instruments";
+import { inferSongKey } from "../lib/chordTheory";
 import ChordVisual from "./ChordVisual";
 import StrumGuide from "./StrumGuide";
 import EqualizerBars from "./EqualizerBars";
+import ScalePanel from "./ScalePanel";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -12,6 +14,7 @@ import {
   IconPlay,
   IconRepeat,
   IconRestart,
+  IconScale,
 } from "./icons";
 
 export type ViewMode = "chords" | "visual" | "both";
@@ -59,6 +62,8 @@ export default function Player({ song, instrument, mode }: Props) {
   const [speed, setSpeed] = useState(1);
   const [metronome, setMetronome] = useState(true);
   const [loop, setLoop] = useState(true);
+  const [showScale, setShowScale] = useState(false);
+  const inferredKey = useMemo(() => inferSongKey(events), [events]);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const intervalRef = useRef<number | null>(null);
@@ -256,7 +261,20 @@ export default function Player({ song, instrument, mode }: Props) {
         >
           <IconRepeat /> Loop
         </button>
+        {inferredKey && (
+          <button
+            className={`toggle-chip${showScale ? " toggle-chip--active" : ""}`}
+            onClick={() => setShowScale((s) => !s)}
+            aria-pressed={showScale}
+          >
+            <IconScale /> Scale
+          </button>
+        )}
       </div>
+
+      {showScale && inferredKey && (
+        <ScalePanel instrument={instrument} rootIndex={inferredKey.rootIndex} mode={inferredKey.mode} />
+      )}
     </div>
   );
 }

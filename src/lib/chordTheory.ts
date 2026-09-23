@@ -58,6 +58,46 @@ export function getChordNoteIndices(symbol: string): number[] | null {
   return intervals.map((i) => (parsed.rootIndex + i) % 12);
 }
 
+export type ScaleMode = "major" | "minor";
+
+const SCALE_INTERVALS: Record<ScaleMode, number[]> = {
+  major: [0, 2, 4, 5, 7, 9, 11],
+  minor: [0, 2, 3, 5, 7, 8, 10], // natural minor
+};
+
+export function getScaleNoteIndices(rootIndex: number, mode: ScaleMode): number[] {
+  return SCALE_INTERVALS[mode].map((i) => (rootIndex + i) % 12);
+}
+
+export interface InferredKey {
+  root: string;
+  rootIndex: number;
+  mode: ScaleMode;
+}
+
+// Heuristic key detection, not full harmonic analysis: the chord a song
+// spends the most total time on is almost always its tonic, and that's
+// enough to suggest a practice scale without hand-tagging a key for
+// every song in the library.
+export function inferSongKey(events: { chord: string; beats: number }[]): InferredKey | null {
+  const weight = new Map<string, { rootIndex: number; mode: ScaleMode; beats: number }>();
+  for (const e of events) {
+    const parsed = parseChord(e.chord);
+    if (!parsed) continue;
+    const mode: ScaleMode =
+      parsed.quality === "minor" || parsed.quality === "m7" || parsed.quality === "dim" ? "minor" : "major";
+    const key = `${parsed.rootIndex}-${mode}`;
+    const prev = weight.get(key);
+    weight.set(key, { rootIndex: parsed.rootIndex, mode, beats: (prev?.beats ?? 0) + e.beats });
+  }
+  let best: { rootIndex: number; mode: ScaleMode; beats: number } | null = null;
+  for (const v of weight.values()) {
+    if (!best || v.beats > best.beats) best = v;
+  }
+  if (!best) return null;
+  return { root: NOTE_NAMES[best.rootIndex], rootIndex: best.rootIndex, mode: best.mode };
+}
+
 const QUALITY_SUFFIX: Record<ChordQuality, string> = {
   major: "", minor: "m", "7": "7", maj7: "maj7", m7: "m7",
   sus4: "sus4", sus2: "sus2", dim: "dim",

@@ -1,20 +1,21 @@
 # MuJam
 
-Pick a song, pick an instrument, start playing. MuJam is a web app that turns any song in its library into a guided, on-screen chord tutorial — no sheet music, no audio transcription, no lesson plans to sit through first.
+Pick a song, pick an instrument, start playing. MuJam is a web app that turns any song in its library into a guided, on-screen chord tutorial, no sheet music, no audio transcription, no lesson plans to sit through first.
 
 ## How it works
 
-1. **Search for a song** — search by title/artist or paste a YouTube link.
-2. **Pick an instrument** — ukulele, guitar, bass, or piano.
-3. **Follow along** — the tutorial shows the current chord, its fingering diagram, and a beat-synced strum guide so you always know what to play and when.
+1. **Search for a song**
+Search by title/artist or paste a YouTube link.
+2. **Pick an instrument** 
+3. **Follow along** 
+The tutorial shows the current chord, its fingering diagram, and a beat-synced strum guide so you always know what to play and when.
 
 ## Features
 
 - **Beat-synced playback** with an adjustable-speed metronome, loop mode, and a strum-pattern guide that highlights where you are in the bar
-- **Chord and visual views** — read chord names, see fingering diagrams, or both at once
-- **No account, no backend** — runs entirely client-side as a static site
+- **Chord and visual views**, read chord names, see fingering diagrams, or both at once
 
-The song library and instrument support are both actively growing — more songs, genres, and instruments are being added over time.
+The song library and instrument support are both actively growing, more songs, genres, and instruments are being added over time.
 
 ## Tech stack
 
@@ -52,4 +53,4 @@ src/
 
 ## Chord data
 
-Chord data is sourced and cross-checked from publicly available chord charts, keyed by title/artist/tempo. No lyrics or copyrighted media are stored — only chord names and song metadata.
+Chord data is sourced and cross-checked from publicly available chord charts, keyed by title/artist/tempo. No lyrics or copyrighted media are stored, only chord names and song metadata.

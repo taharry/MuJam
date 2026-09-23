@@ -865,3 +865,52 @@ body::after {
   color: var(--color-text);
   box-shadow: 0 0 14px rgba(176, 107, 255, 0.3);
 }
+
+/* Scale suggestion panel */
+.scale-panel {
+  margin-top: 22px;
+  padding: 20px;
+  background: var(--color-surface);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.scale-panel__title {
+  font-size: 13.5px;
+  color: var(--color-muted);
+}
+
+.scale-panel__title strong {
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.scale-panel__notes {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.scale-diagram {
+  color: var(--color-text);
+  display: inline-block;
+}
+
+.scale-diagram__dot {
+  fill: var(--color-violet-soft);
+  stroke: var(--color-violet);
+  stroke-width: 1.5;
+}
+
+.scale-diagram__dot--root {
+  fill: var(--color-gold);
+  stroke: none;
+  filter: drop-shadow(0 0 6px rgba(255, 182, 72, 0.6));
+}

@@ -65,3 +65,14 @@ export function IconRepeat({ size = 16 }: IconProps) {
     </svg>
   );
 }
+
+export function IconScale({ size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base}>
+      <path d="M4 20v-4" />
+      <path d="M9 20v-8" />
+      <path d="M14 20v-12" />
+      <path d="M19 20v-16" />
+    </svg>
+  );
+}
