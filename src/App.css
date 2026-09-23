@@ -694,53 +694,165 @@ body::after {
   color: var(--color-muted);
 }
 
-.player__progress {
-  height: 7px;
-  background: var(--color-surface-2);
-  border-radius: 999px;
-  overflow: hidden;
-  margin-bottom: 18px;
-}
-
-.player__progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--color-violet), var(--color-gold));
-  box-shadow: 0 0 12px rgba(255, 182, 72, 0.4);
-  transition: width 0.1s linear;
-}
-
-.chord-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: center;
+/* Timeline: whole arrangement, sections, chord spans, scrub rail */
+.timeline {
   margin-bottom: 22px;
 }
 
-.chord-strip__item {
-  padding: 5px 11px;
-  border-radius: 8px;
-  background: var(--color-surface);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+.timeline__meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.timeline__source {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
   border: 1px solid var(--color-border);
-  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.timeline__source--verified {
+  color: #1a1408;
+  background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
+  border-color: transparent;
+}
+
+.timeline__snap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
   color: var(--color-muted);
   cursor: pointer;
+}
+
+.timeline__scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.timeline__track {
+  position: relative;
+  width: 100%;
+}
+
+.timeline__sections {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 3px;
+}
+
+.timeline__section {
+  min-width: 0;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  background: var(--color-surface-2);
+  border-radius: 6px 6px 0 0;
+  padding: 3px 6px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.timeline__section span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.timeline__chords {
+  display: flex;
+  gap: 2px;
+}
+
+.timeline__chord {
+  min-width: 0;
+  padding: 8px 4px;
+  border-radius: 0 0 6px 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-top: none;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
   font-family: inherit;
-  transition: border-color 0.15s, transform 0.15s;
+  overflow: hidden;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
 
-.chord-strip__item:hover {
-  border-color: var(--color-violet);
-  transform: translateY(-1px);
+.timeline__chord span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  white-space: nowrap;
 }
 
-.chord-strip__item--active {
+.timeline__chord--upcoming {
+  color: var(--color-text);
+}
+
+.timeline__chord--active {
   background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
   border-color: transparent;
   color: #1a1408;
-  font-weight: 700;
+}
+
+.timeline__chord:hover {
+  border-color: var(--color-violet);
+}
+
+.timeline__rail {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  margin-top: 4px;
+  background: transparent;
+  touch-action: none;
+  cursor: pointer;
+}
+
+.timeline__rail::-webkit-slider-runnable-track {
+  height: 4px;
+  background: var(--color-surface-2);
+  border-radius: 999px;
+}
+
+.timeline__rail::-moz-range-track {
+  height: 4px;
+  background: var(--color-surface-2);
+  border-radius: 999px;
+}
+
+.timeline__rail::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  box-shadow: 0 0 8px rgba(255, 182, 72, 0.7);
+  border: 2px solid #1a1408;
+}
+
+.timeline__rail::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  box-shadow: 0 0 8px rgba(255, 182, 72, 0.7);
+  border: 2px solid #1a1408;
 }
 
 /* Strum guide */

@@ -10,6 +10,7 @@ import ChordVisual from "./ChordVisual";
 import StrumGuide from "./StrumGuide";
 import EqualizerBars from "./EqualizerBars";
 import ScalePanel from "./ScalePanel";
+import Timeline from "./Timeline";
 import {
   IconChevronLeft,
   IconChevronRight,
@@ -78,7 +79,6 @@ export default function Player({ song, instrument, mode }: Props) {
   const currentSection = findActiveSection(sections, beat);
   const currentDisplay = current ? display(current.chord) : null;
   const upcomingDisplay = upcoming ? display(upcoming.chord) : null;
-  const progressPct = totalBeats ? (beat / totalBeats) * 100 : 0;
   const showDiagram = mode === "visual" || mode === "both";
   const showChordName = mode === "chords" || mode === "both";
 
@@ -184,28 +184,7 @@ export default function Player({ song, instrument, mode }: Props) {
         </button>
       </div>
 
-      <div className="player__progress">
-        <div className="player__progress-bar" style={{ width: `${progressPct}%` }} />
-      </div>
-
-      {mode !== "visual" && (
-        <div className="chord-strip">
-          {events.map((e, i) => {
-            const d = display(e.chord);
-            const label = d.unsupported ? "?" : d.soundingChord;
-            return (
-              <button
-                key={`${e.chord}-${e.startBeat}`}
-                className={`chord-strip__item${i === currentIndex ? " chord-strip__item--active" : ""}`}
-                onClick={() => goToIndex(i)}
-                title={`Jump to this ${label}`}
-              >
-                {label}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      <Timeline arrangement={arrangement} beat={beat} onSeek={clock.seek} />
 
       {instrument !== "piano" && <StrumGuide pattern={strumPattern} beatPosition={beat} playing={playing} />}
 
