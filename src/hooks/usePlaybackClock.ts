@@ -24,14 +24,29 @@ export function usePlaybackClock({ bpm, beatsPerBar, totalBeats }: UsePlaybackCl
   const clockRef = useRef<PlaybackClock | null>(null);
   const rafRef = useRef<number | null>(null);
 
-  if (audioCtxRef.current === null) {
-    audioCtxRef.current = new AudioContext();
-  }
-  if (clockRef.current === null) {
-    const scheduler = new AudioClickScheduler(audioCtxRef.current);
-    const ctx = audioCtxRef.current;
-    clockRef.current = new PlaybackClock({ now: () => ctx.currentTime, bpm, beatsPerBar, totalBeats, loop }, scheduler);
-    clockRef.current.setMetronomeEnabled(metronome);
+  // Created lazily on first real user interaction (play/seek), not
+  // during render. Creating it eagerly during render used to work
+  // "by accident" in production, but under StrictMode's dev-only
+  // mount→unmount→remount cycle the unmount step's cleanup effect
+  // would close the AudioContext right after it was created, and
+  // because creation lived in the render body (which doesn't re-run
+  // for that remount step) it was never recreated — leaving the clock
+  // reading time from a closed, frozen context, so pressing Play
+  // flipped the button but the beat position never actually advanced.
+  function ensureClock(): PlaybackClock {
+    if (audioCtxRef.current === null) {
+      audioCtxRef.current = new AudioContext();
+    }
+    if (clockRef.current === null) {
+      const ctx = audioCtxRef.current;
+      const scheduler = new AudioClickScheduler(ctx);
+      clockRef.current = new PlaybackClock(
+        { now: () => ctx.currentTime, bpm, beatsPerBar, totalBeats, loop },
+        scheduler
+      );
+      clockRef.current.setMetronomeEnabled(metronome);
+    }
+    return clockRef.current;
   }
 
   // Keep the clock's arrangement config current when the song/instrument changes.
@@ -70,8 +85,7 @@ export function usePlaybackClock({ bpm, beatsPerBar, totalBeats }: UsePlaybackCl
   }
 
   function play() {
-    const clock = clockRef.current;
-    if (!clock) return;
+    const clock = ensureClock();
     if (audioCtxRef.current?.state === "suspended") audioCtxRef.current.resume();
     clock.play();
     setPlaying(true);
@@ -93,8 +107,7 @@ export function usePlaybackClock({ bpm, beatsPerBar, totalBeats }: UsePlaybackCl
   }
 
   function seek(targetBeat: number) {
-    const clock = clockRef.current;
-    if (!clock) return;
+    const clock = ensureClock();
     clock.seek(targetBeat);
     setBeat(clock.getBeat());
   }

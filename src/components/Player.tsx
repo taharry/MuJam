@@ -151,15 +151,24 @@ export default function Player({ song, instrument, mode }: Props) {
 
         {capoSupported && (
           <div className="capo-controls">
-            <label htmlFor="capo-select">Capo</label>
-            <select id="capo-select" value={capo} onChange={(e) => setCapo(Number(e.target.value))}>
-              <option value={0}>None</option>
-              {Array.from({ length: MAX_CAPO_FRET }, (_, i) => i + 1).map((fret) => (
-                <option key={fret} value={fret}>
-                  Fret {fret}
-                </option>
-              ))}
-            </select>
+            <span className="capo-controls__label">Capo</span>
+            <button
+              className="stepper-btn"
+              onClick={() => setCapo((c) => Math.max(0, c - 1))}
+              disabled={capo === 0}
+              aria-label="Move capo down one fret"
+            >
+              −
+            </button>
+            <span className="capo-controls__value">{capo === 0 ? "Off" : `Fret ${capo}`}</span>
+            <button
+              className="stepper-btn"
+              onClick={() => setCapo((c) => Math.min(MAX_CAPO_FRET, c + 1))}
+              disabled={capo === MAX_CAPO_FRET}
+              aria-label="Move capo up one fret"
+            >
+              +
+            </button>
           </div>
         )}
 
