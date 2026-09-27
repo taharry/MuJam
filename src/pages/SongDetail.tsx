@@ -1,46 +1,77 @@
+import { useEffect, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { resolveSong } from "../lib/customSongs";
+import { recordRecentSong } from "../lib/recentSongs";
+import { getArrangement } from "../data/songs";
 import { INSTRUMENTS, type InstrumentId } from "../data/instruments";
-import Divider from "../components/Divider";
-import InstrumentCardArt from "../components/InstrumentCardArt";
+import InstrumentIcon from "../components/InstrumentIcon";
 
-const STRING_COUNT: Partial<Record<InstrumentId, number>> = {
-  ukulele: 4,
-  guitar: 6,
-  bass: 4,
+const INSTRUMENT_BLURB: Record<InstrumentId, string> = {
+  ukulele: "4-string chord shapes",
+  guitar: "6-string open & barre chords",
+  "electric-guitar": "Same shapes as acoustic guitar",
+  bass: "Root-note bass line",
+  piano: "Backing, triad, or two-hand voicing",
 };
+
+const ARRANGEMENT_LABEL = {
+  verified: "Full arrangement",
+  simplified: "Simplified progression",
+  imported: "Your imported draft",
+} as const;
 
 export default function SongDetail() {
   const { songId } = useParams<{ songId: string }>();
   const navigate = useNavigate();
   const song = songId ? resolveSong(songId) : undefined;
+  const [selected, setSelected] = useState<InstrumentId | null>(null);
+
+  useEffect(() => {
+    if (song) recordRecentSong(song.id);
+  }, [song]);
 
   if (!song) return <Navigate to="/" replace />;
+
+  const arrangementSource = getArrangement(song).source;
+
+  function chooseInstrument(id: InstrumentId) {
+    if (!song) return;
+    setSelected(id);
+    window.setTimeout(() => navigate(`/song/${song.id}/play/${id}/both`), 170);
+  }
 
   return (
     <div className="song-detail">
       <button className="back-link" onClick={() => navigate("/")}>
         ← Back
       </button>
-      <h1>{song.title}</h1>
-      <p className="song-detail__meta">
-        <em>{song.artist}</em> · {song.genre} · {song.difficulty} · {song.bpm} BPM
-      </p>
-      <Divider />
 
-      <h2>Choose your instrument</h2>
+      <header className="song-detail__header">
+        <h1>{song.title}</h1>
+        <p className="song-detail__meta">
+          <em>{song.artist}</em> · {song.genre} · {song.bpm} BPM
+        </p>
+        <div className="song-detail__badges">
+          <span className={`song-card__badge song-card__badge--${song.difficulty}`}>{song.difficulty}</span>
+          <span className={`song-card__badge song-card__badge--arrangement-${arrangementSource}`}>
+            {ARRANGEMENT_LABEL[arrangementSource]}
+          </span>
+        </div>
+      </header>
+
+      <h2 className="song-detail__prompt">Choose your instrument</h2>
       <div className="instrument-picker">
         {INSTRUMENTS.map((inst) => (
           <button
             key={inst.id}
-            className="instrument-card"
-            onClick={() => navigate(`/song/${song.id}/play/${inst.id}/both`)}
+            className={`instrument-card${selected === inst.id ? " instrument-card--selected" : ""}`}
+            onClick={() => chooseInstrument(inst.id)}
           >
-            <InstrumentCardArt
-              variant={inst.id === "piano" ? "keys" : "strings"}
-              strings={STRING_COUNT[inst.id]}
-            />
-            <div className="instrument-card__label">{inst.label}</div>
+            <span className="instrument-card__icon">
+              <InstrumentIcon instrument={inst.id} size={48} />
+            </span>
+            <span className="instrument-card__label">{inst.label}</span>
+            <span className="instrument-card__blurb">{INSTRUMENT_BLURB[inst.id]}</span>
           </button>
         ))}
       </div>

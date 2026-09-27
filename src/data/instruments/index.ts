@@ -1,4 +1,4 @@
-export type InstrumentId = "ukulele" | "guitar" | "bass" | "piano";
+export type InstrumentId = "ukulele" | "guitar" | "electric-guitar" | "bass" | "piano";
 
 export interface InstrumentInfo {
   id: InstrumentId;
@@ -9,6 +9,7 @@ export interface InstrumentInfo {
 export const INSTRUMENTS: InstrumentInfo[] = [
   { id: "ukulele", label: "Ukulele", icon: "🎸" },
   { id: "guitar", label: "Guitar", icon: "🎸" },
+  { id: "electric-guitar", label: "Electric Guitar", icon: "🎸" },
   { id: "bass", label: "Bass", icon: "🎸" },
   { id: "piano", label: "Piano", icon: "🎹" },
 ];

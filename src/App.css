@@ -2,19 +2,48 @@
   --color-bg: #0f0b16;
   --color-surface: rgba(38, 30, 51, 0.82);
   --color-surface-2: #2c2338;
+  --color-surface-3: #1a1424;
   --color-border: rgba(255, 255, 255, 0.14);
   --color-border-strong: rgba(255, 255, 255, 0.3);
   --color-text: #fdf8f3;
   --color-muted: #bdb2d6;
+  --color-muted-2: #8778a3;
   --color-gold: #ffb648;
   --color-gold-dark: #e0983a;
   --color-gold-soft: rgba(255, 182, 72, 0.18);
   --color-violet: #b06bff;
   --color-violet-soft: rgba(176, 107, 255, 0.18);
+  --color-focus: #7fd8ff;
+
+  --radius-sm: 10px;
   --radius: 18px;
+  --radius-lg: 26px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 15px;
+  --font-size-lg: 19px;
+
   --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.45);
+  --shadow-sticky: 0 -10px 28px rgba(0, 0, 0, 0.5);
   --glow-gold: 0 0 26px rgba(255, 182, 72, 0.45);
   --glow-violet: 0 0 26px rgba(176, 107, 255, 0.4);
+}
+
+/* One consistent, visible focus ring everywhere instead of relying on
+   each interactive element's own hover treatment to double as focus. */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 * {
@@ -152,58 +181,70 @@ body::after {
   filter: brightness(1.3) saturate(1.2);
 }
 
-/* Decorative divider */
+/* Quiet separator line */
 .divider {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  max-width: 360px;
-  margin: 22px auto;
-}
-
-.divider__line {
-  flex: 1;
   height: 1px;
+  max-width: 360px;
+  margin: var(--space-5) auto;
   background: linear-gradient(90deg, transparent, var(--color-border-strong), transparent);
 }
 
-.divider__glyph {
-  color: var(--color-gold);
-  font-size: 13px;
-  opacity: 0.9;
+.brand-motif {
+  display: block;
+  margin: 0 auto var(--space-3);
+  filter: drop-shadow(0 4px 18px rgba(176, 107, 255, 0.25));
 }
 
 /* Home hero */
 .home {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: calc(100vh - 70px);
+  padding-top: var(--space-4);
 }
 
 .hero {
   text-align: center;
-  padding: 24px 0;
+  padding: var(--space-5) 0 var(--space-6);
 }
 
 .hero h1 {
-  font-size: 40px;
-  margin-bottom: 14px;
+  font-size: clamp(30px, 5.4vw, 40px);
+  margin-bottom: 10px;
   letter-spacing: -0.01em;
   color: var(--color-text);
+}
+
+.hero__subtitle {
+  color: var(--color-muted);
+  max-width: 480px;
+  margin: 0 auto var(--space-5);
+  line-height: 1.6;
+  font-size: var(--font-size-md);
 }
 
 .search-bar {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  max-width: 420px;
+  gap: 6px;
+  max-width: 480px;
   margin: 0 auto;
 }
 
+.search-bar__label {
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.search-bar__row {
+  display: flex;
+  gap: 10px;
+}
+
 .search-bar input {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 15px 18px;
   border-radius: 999px;
   border: 1px solid var(--color-border);
@@ -227,8 +268,9 @@ body::after {
 }
 
 .search-bar button {
+  flex-shrink: 0;
   width: auto;
-  padding: 13px 34px;
+  padding: 13px 28px;
   border-radius: 999px;
   border: none;
   background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
@@ -239,7 +281,7 @@ body::after {
   transition: box-shadow 0.15s, transform 0.15s, filter 0.15s;
 }
 
-.search-bar button:hover {
+.search-bar button:hover:not(:disabled) {
   filter: brightness(1.08);
   box-shadow: var(--glow-gold);
   transform: translateY(-2px);
@@ -252,46 +294,198 @@ body::after {
   box-shadow: none;
 }
 
-.hero__resolved,
-.hero__notfound {
-  margin-top: 14px;
+@media (max-width: 480px) {
+  .search-bar__row {
+    flex-direction: column;
+  }
+}
+
+.hero__resolved {
+  margin-top: var(--space-3);
   font-size: 14px;
   color: var(--color-muted);
 }
 
+.hero__notfound {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  max-width: 420px;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.hero__notfound p {
+  margin-bottom: 8px;
+}
+
 .search-results {
-  list-style: none;
-  margin: 18px auto 0;
-  padding: 0;
-  max-width: 520px;
+  margin: var(--space-5) auto 0;
+  max-width: 720px;
+}
+
+.search-results__hint {
+  color: var(--color-muted-2);
+  font-size: 13.5px;
+  text-align: center;
+  padding: var(--space-3) 0;
+}
+
+/* Song cards + grids (search results, discovery sections). Fixed
+   column width + justify-content:center so a short row (e.g. "Recently
+   played" with just a couple of cards) sits as a centered cluster
+   instead of stretching edge-to-edge. */
+.song-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 190px);
+  justify-content: center;
+  gap: var(--space-4);
   text-align: left;
 }
 
-.search-result {
-  display: block;
-  width: 100%;
-  padding: 13px 18px;
-  margin-bottom: 8px;
+.discovery-section {
+  max-width: 720px;
+  margin: 0 auto var(--space-6);
+  text-align: center;
+}
+
+.discovery-section h2 {
+  font-size: var(--font-size-lg);
+  margin-bottom: 2px;
+}
+
+.discovery-section__subtitle {
+  color: var(--color-muted);
+  font-size: 13px;
+  margin-bottom: var(--space-3);
+}
+
+.song-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
   background: var(--color-surface);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid var(--color-border);
-  border-radius: 14px;
+  border-radius: var(--radius);
+  overflow: hidden;
   cursor: pointer;
-  font-size: 14px;
   font-family: inherit;
-  color: var(--color-text);
-  text-align: left;
-  transition: border-color 0.15s, transform 0.15s;
+  color: inherit;
+  padding: 0;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s;
 }
 
-.search-result:hover {
+.song-card:hover,
+.song-card:focus-visible {
   border-color: var(--color-gold);
-  transform: translateX(4px);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-card);
 }
 
-.search-result span {
+.song-card__art {
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 182, 72, 0.35), rgba(176, 107, 255, 0.35));
+  position: relative;
+  overflow: hidden;
+}
+
+.song-card__art::after {
+  content: "♪";
+  position: absolute;
+  right: 8px;
+  bottom: -10px;
+  font-size: 52px;
+  color: rgba(255, 255, 255, 0.12);
+}
+
+.song-card__art-letter {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 600;
+  color: rgba(15, 11, 22, 0.65);
+}
+
+.song-card__body {
+  padding: var(--space-3) var(--space-3) var(--space-4);
+}
+
+.song-card__title {
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-card__artist {
   color: var(--color-muted);
+  font-size: 12.5px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.song-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.song-card__badge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  white-space: nowrap;
+}
+
+.song-card__badge--easy {
+  color: #b6f5c0;
+  border-color: rgba(182, 245, 192, 0.4);
+}
+
+.song-card__badge--medium {
+  color: #ffe0a3;
+  border-color: rgba(255, 224, 163, 0.4);
+}
+
+.song-card__badge--hard {
+  color: #ffb3b3;
+  border-color: rgba(255, 179, 179, 0.4);
+}
+
+.song-card__badge--arrangement-verified {
+  color: #1a1408;
+  background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
+  border-color: transparent;
+}
+
+.song-card__badge--arrangement-imported {
+  color: #16101f;
+  background: var(--color-violet);
+  border-color: transparent;
+}
+
+.song-card__instruments {
+  display: flex;
+  gap: 5px;
+  color: var(--color-muted-2);
 }
 
 /* Buttons */
@@ -354,18 +548,17 @@ body::after {
 
 .song-detail .back-link {
   display: inline-block;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-4);
 }
 
-.song-detail h2 {
-  margin: 32px 0 14px;
-  font-size: 19px;
-  color: var(--color-text);
+.song-detail__header {
+  margin-bottom: var(--space-6);
 }
 
 .song-detail__meta {
   color: var(--color-muted);
   text-transform: capitalize;
+  margin-bottom: var(--space-3);
 }
 
 .song-detail__meta em,
@@ -374,53 +567,104 @@ body::after {
   color: var(--color-text);
 }
 
+.song-detail__badges {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+}
+
+.song-detail__prompt {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-lg);
+  color: var(--color-text);
+}
+
 .instrument-picker {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 14px;
-  max-width: 520px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-4);
+  max-width: 680px;
   margin: 0 auto;
 }
 
 .instrument-card {
   position: relative;
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   text-align: center;
   background: var(--color-surface);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
-  padding: 40px 12px 20px;
+  padding: var(--space-5) var(--space-3) var(--space-4);
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  font-family: inherit;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.instrument-card:hover {
+.instrument-card:hover,
+.instrument-card:focus-visible {
   border-color: var(--color-gold);
   transform: translateY(-4px) scale(1.02);
   box-shadow: var(--shadow-card), var(--glow-gold);
 }
 
-.instrument-card__art {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  color: var(--color-gold);
-  opacity: 0.22;
-  pointer-events: none;
+.instrument-card--selected {
+  border-color: var(--color-gold);
+  background: var(--color-gold-soft);
+  transform: scale(1.04);
+  box-shadow: var(--shadow-card), var(--glow-gold);
 }
 
-.instrument-card:hover .instrument-card__art {
-  opacity: 0.34;
+.instrument-card__icon {
+  color: var(--color-gold);
+  margin-bottom: var(--space-3);
+  transition: color 0.15s;
+}
+
+.instrument-card:hover .instrument-card__icon,
+.instrument-card:focus-visible .instrument-card__icon,
+.instrument-card--selected .instrument-card__icon {
+  color: var(--color-violet);
+}
+
+.instrument-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.instrument-icon__base {
+  display: block;
+}
+
+.instrument-icon__badge {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  background: var(--color-surface-3);
+  border-radius: 50%;
+  padding: 2px;
+}
+
+.song-card__instruments .instrument-icon__badge {
+  display: none; /* too small to read meaningfully at the tiny availability-row size */
 }
 
 .instrument-card__label {
-  position: relative;
   font-weight: 700;
   font-size: 15px;
   color: var(--color-text);
+  margin-bottom: 3px;
+}
+
+.instrument-card__blurb {
+  font-size: 11.5px;
+  color: var(--color-muted);
+  line-height: 1.4;
 }
 
 /* Fretboard / piano diagram shell */
@@ -443,6 +687,11 @@ body::after {
   fill: #100e14;
   font-weight: 700;
   pointer-events: none;
+}
+
+.uke-diagram__string-label {
+  fill: var(--color-text);
+  opacity: 0.85;
 }
 
 .uke-diagram__label {
@@ -478,9 +727,28 @@ body::after {
   fill: var(--color-gold);
 }
 
+.piano-keys__labels {
+  display: flex;
+  margin-bottom: 3px;
+}
+
+.piano-keys__label {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
 /* Player page */
 .player-page {
   text-align: center;
+  padding-bottom: 90px; /* keeps content clear of the sticky transport bar */
+}
+
+.player-page--focus {
+  padding-bottom: 90px;
 }
 
 .player-page__header {
@@ -494,7 +762,7 @@ body::after {
 
 .player-page__meta {
   color: var(--color-muted);
-  margin-bottom: 8px;
+  margin-bottom: var(--space-4);
   text-transform: capitalize;
 }
 
@@ -531,17 +799,96 @@ body::after {
   color: #1a1408;
 }
 
+.mode-switch--voicing {
+  padding: 3px;
+}
+
+.mode-switch--voicing .mode-switch__item {
+  padding: 5px 12px;
+  font-size: 12px;
+}
+
 .change-instrument-btn {
   display: block;
   margin: 28px auto 0;
 }
 
-/* Player */
-.player__viewport {
+/* Practice stage — the focused central card holding chord + diagram +
+   next-chord preview + beat indicator. This is the first thing the
+   player sees; everything else (settings, strum guide, timeline) sits
+   below it. */
+.practice-stage {
+  background: var(--color-surface);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-3) var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.player--focus .practice-stage {
+  max-width: 560px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: var(--space-5) var(--space-4) var(--space-6);
+}
+
+.practice-stage__top {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.practice-stage__top-spacer {
+  grid-column: 1;
+}
+
+.practice-stage__section-group {
+  grid-column: 2;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.practice-stage__section {
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.practice-stage__focus-btn {
+  grid-column: 3;
+  justify-self: end;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border);
+  background: none;
+  color: var(--color-muted);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.practice-stage__focus-btn:hover,
+.practice-stage__focus-btn[aria-pressed="true"] {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+
+.practice-stage__main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
 }
 
 .nav-arrow {
@@ -550,9 +897,7 @@ body::after {
   height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: var(--color-surface-2);
   color: var(--color-text);
   display: flex;
   align-items: center;
@@ -573,19 +918,15 @@ body::after {
   cursor: default;
 }
 
-.player__stage {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 40px;
-  margin: 28px 0 18px;
-  text-align: center;
+.practice-stage__center {
   min-width: 0;
   flex: 1;
+  text-align: center;
 }
 
-.player__now {
+.practice-stage__now {
   animation: chord-pop 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  margin-bottom: var(--space-3);
 }
 
 @keyframes chord-pop {
@@ -594,25 +935,84 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .player__now {
+  .practice-stage__now {
     animation: none;
   }
 }
 
-.player__section-row {
+.practice-stage__next {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--color-border);
 }
 
-.player__section {
-  display: block;
-  color: var(--color-muted);
-  font-size: 12px;
+.practice-stage__next-label {
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
+  color: var(--color-muted-2);
+}
+
+.practice-stage__next-content {
+  opacity: 0.85;
+}
+
+/* Beat indicator */
+.beat-indicator {
+  display: flex;
+  justify-content: center;
+  gap: 9px;
+  margin-top: var(--space-3);
+}
+
+.beat-indicator__dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  transition: background 0.1s, transform 0.1s, box-shadow 0.1s;
+}
+
+.beat-indicator__dot--active {
+  background: var(--color-gold);
+  border-color: transparent;
+  transform: scale(1.35);
+  box-shadow: 0 0 10px rgba(255, 182, 72, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .beat-indicator__dot--active {
+    transform: none;
+  }
+}
+
+/* Sticky transport bar — Play/Pause, restart, speed, metronome, loop.
+   Sticky (not fixed) so it can never overlap the timeline/other
+   controls: it just stays pinned to the bottom of the viewport while
+   scrolling past it, and settles back into flow at the end of the page. */
+.transport-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 -20px 0; /* cancels .app-main's 20px horizontal padding so this bleeds edge-to-edge */
+  padding: var(--space-3) 20px;
+  background: rgba(15, 11, 22, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--color-border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  box-shadow: var(--shadow-sticky);
 }
 
 /* Equalizer — the classic "now playing" glyph */
@@ -687,14 +1087,9 @@ body::after {
   margin-top: 2px;
 }
 
-.player__next {
-  opacity: 0.75;
-  text-align: center;
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-/* Timeline: whole arrangement, sections, chord spans, scrub rail */
+/* Timeline: whole arrangement, sections, chord spans, scrub rail.
+   The arrangement-status badge lives with the song info now; this only
+   carries timeline-specific settings (snap-to-beat). */
 .timeline {
   margin-bottom: 22px;
 }
@@ -702,32 +1097,16 @@ body::after {
 .timeline__meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 14px;
+  justify-content: space-between;
   margin-bottom: 8px;
 }
 
-.timeline__source {
-  font-size: 10.5px;
+.timeline__title {
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  padding: 2px 8px;
-  border-radius: 999px;
-  border: 1px solid var(--color-border);
-  color: var(--color-muted);
-}
-
-.timeline__source--verified {
-  color: #1a1408;
-  background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
-  border-color: transparent;
-}
-
-.timeline__source--imported {
-  color: #16101f;
-  background: var(--color-violet);
-  border-color: transparent;
+  letter-spacing: 0.08em;
+  color: var(--color-muted-2);
 }
 
 .timeline__snap {
@@ -749,24 +1128,57 @@ body::after {
   width: 100%;
 }
 
+/* A continuous playhead spanning the section band + chord track, on
+   top of the (thinner) native range thumb below — the primary visual
+   cursor for "where am I in the song". */
+.timeline__playhead {
+  position: absolute;
+  top: 0;
+  bottom: 22px;
+  width: 2px;
+  background: var(--color-gold);
+  box-shadow: 0 0 8px rgba(255, 182, 72, 0.8);
+  pointer-events: none;
+  z-index: 2;
+  transition: left 0.05s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline__playhead {
+    transition: none;
+  }
+}
+
+/* One continuous band, not discrete pills — alternating tint marks
+   where a new section begins instead of a hard visual break. */
 .timeline__sections {
   display: flex;
-  gap: 2px;
-  margin-bottom: 3px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-bottom: none;
 }
 
 .timeline__section {
   min-width: 0;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--color-muted);
   background: var(--color-surface-2);
-  border-radius: 6px 6px 0 0;
-  padding: 3px 6px;
+  padding: 6px 8px;
   overflow: hidden;
   white-space: nowrap;
+  border-right: 1px solid var(--color-border);
+}
+
+.timeline__section:nth-child(even) {
+  background: var(--color-surface-3);
+}
+
+.timeline__section:last-child {
+  border-right: none;
 }
 
 .timeline__section span {
@@ -777,23 +1189,28 @@ body::after {
 
 .timeline__chords {
   display: flex;
-  gap: 2px;
+  border: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  overflow: hidden;
 }
 
 .timeline__chord {
   min-width: 0;
-  padding: 8px 4px;
-  border-radius: 0 0 6px 6px;
+  padding: 12px 6px;
   background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-top: none;
-  color: var(--color-muted);
-  font-size: 12px;
-  font-weight: 600;
+  border: none;
+  border-right: 1px solid var(--color-border);
+  color: var(--color-muted-2);
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   font-family: inherit;
   overflow: hidden;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.timeline__chord:last-child {
+  border-right: none;
 }
 
 .timeline__chord span {
@@ -803,26 +1220,35 @@ body::after {
   white-space: nowrap;
 }
 
+.timeline__chord--past {
+  color: var(--color-muted-2);
+  opacity: 0.55;
+}
+
 .timeline__chord--upcoming {
   color: var(--color-text);
 }
 
 .timeline__chord--active {
   background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
-  border-color: transparent;
   color: #1a1408;
+  opacity: 1;
 }
 
 .timeline__chord:hover {
-  border-color: var(--color-violet);
+  background: var(--color-surface-2);
+}
+
+.timeline__chord--active:hover {
+  background: linear-gradient(120deg, var(--color-gold), #ff9a4d);
 }
 
 .timeline__rail {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 20px;
-  margin-top: 4px;
+  height: 24px;
+  margin-top: 6px;
   background: transparent;
   touch-action: none;
   cursor: pointer;
@@ -843,9 +1269,9 @@ body::after {
 .timeline__rail::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
-  margin-top: -5px;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
   border-radius: 50%;
   background: var(--color-gold);
   box-shadow: 0 0 8px rgba(255, 182, 72, 0.7);
@@ -853,8 +1279,8 @@ body::after {
 }
 
 .timeline__rail::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--color-gold);
   box-shadow: 0 0 8px rgba(255, 182, 72, 0.7);
@@ -1253,18 +1679,6 @@ body::after {
   display: block;
   margin: 18px auto 0;
   text-align: center;
-}
-
-.your-imports {
-  max-width: 520px;
-  margin: 32px auto 0;
-  text-align: center;
-}
-
-.your-imports h2 {
-  font-size: 15px;
-  color: var(--color-muted);
-  margin-bottom: 10px;
 }
 
 .import-audio {

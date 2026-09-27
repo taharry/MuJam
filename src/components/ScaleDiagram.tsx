@@ -109,15 +109,20 @@ export default function ScaleDiagram({ instrument, rootIndex, mode, size = 160 }
   const scaleSet = new Set(getScaleNoteIndices(rootIndex, mode));
 
   if (instrument === "piano") {
+    const highlights = [...scaleSet].map((pitchClass) => ({
+      octave: 0,
+      pitchClass,
+      isRoot: pitchClass === rootIndex,
+    }));
     return (
       <div className="scale-diagram" style={{ width: size }}>
-        <PianoKeys noteSet={scaleSet} root={rootIndex} size={size} />
+        <PianoKeys highlights={highlights} size={size} />
       </div>
     );
   }
 
   const stringNames =
-    instrument === "guitar"
+    instrument === "guitar" || instrument === "electric-guitar"
       ? GUITAR_STRING_NAMES
       : instrument === "bass"
         ? BASS_STRING_NAMES

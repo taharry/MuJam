@@ -4,20 +4,24 @@ import { UKULELE_STRING_NAMES, getUkuleleChordShape } from "../data/instruments/
 import { GUITAR_STRING_NAMES, getGuitarChordShape } from "../data/instruments/guitar";
 import { BASS_STRING_NAMES, getBassChordShape } from "../data/instruments/bass";
 import FretboardDiagram from "./FretboardDiagram";
-import PianoDiagram from "./PianoDiagram";
+import PianoDiagram, { type PianoVoicing } from "./PianoDiagram";
 
 interface Props {
   instrument: InstrumentId;
   chord: string;
   size?: number;
   highlight?: boolean;
+  pianoVoicing?: PianoVoicing;
 }
 
-function ChordVisual({ instrument, chord, size, highlight }: Props) {
+function ChordVisual({ instrument, chord, size, highlight, pianoVoicing }: Props) {
   if (instrument === "piano") {
-    return <PianoDiagram chord={chord} size={size} highlight={highlight} />;
+    return <PianoDiagram chord={chord} size={size} highlight={highlight} voicing={pianoVoicing} />;
   }
-  if (instrument === "guitar") {
+  if (instrument === "guitar" || instrument === "electric-guitar") {
+    // Standard electric-guitar tuning is identical to acoustic, so the
+    // same shapes apply — this is a distinct instrument choice for the
+    // player, not a different fretboard.
     return (
       <FretboardDiagram
         chord={chord}

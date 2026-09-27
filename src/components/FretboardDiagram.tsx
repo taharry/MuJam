@@ -19,12 +19,18 @@ export default function FretboardDiagram({
   const height = size * 1.25;
   const padTop = height * 0.22;
   const padSide = width * 0.12;
-  const nameY = padTop * 0.35;
-  const indicatorY = padTop * 0.72;
+  const nameY = padTop * 0.32;
+  const indicatorY = padTop * 0.78;
   const gridW = width - padSide * 2;
   const gridH = height - padTop - height * 0.06;
   const stringGap = gridW / (stringNames.length - 1);
   const fretGap = gridH / FRETS_SHOWN;
+  // Font sizes and the open-string circle scale with the diagram itself
+  // (not fixed px) so small previews can't collide the way a fixed-size
+  // label does once the diagram shrinks below its "designed" size.
+  const nameFontSize = height * 0.07;
+  const indicatorFontSize = height * 0.075;
+  const openCircleR = height * 0.026;
 
   const playedFrets = frets?.filter((f) => f > 0) ?? [];
   const maxFret = playedFrets.length ? Math.max(...playedFrets) : 0;
@@ -64,9 +70,10 @@ export default function FretboardDiagram({
             key={`name-${i}`}
             x={padSide + i * stringGap}
             y={nameY}
-            fontSize={11}
+            fontSize={nameFontSize}
+            fontWeight={700}
             textAnchor="middle"
-            fill="currentColor"
+            className="uke-diagram__string-label"
           >
             {n}
           </text>
@@ -80,7 +87,7 @@ export default function FretboardDiagram({
                   key={`mute-${i}`}
                   x={x}
                   y={indicatorY}
-                  fontSize={13}
+                  fontSize={indicatorFontSize}
                   textAnchor="middle"
                   fill="currentColor"
                   opacity={0.6}
@@ -95,7 +102,7 @@ export default function FretboardDiagram({
                   key={`open-${i}`}
                   cx={x}
                   cy={indicatorY}
-                  r={4.5}
+                  r={openCircleR}
                   fill="none"
                   stroke="currentColor"
                   strokeWidth={1.5}

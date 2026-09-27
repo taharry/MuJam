@@ -34,13 +34,11 @@ describe("Timeline", () => {
     expect(active).toBeTruthy();
   });
 
-  it("shows the correct source badge for a simplified vs verified arrangement", () => {
-    render(<Timeline arrangement={arrangement} beat={0} onSeek={() => {}} />);
-    expect(screen.getByText("Simplified progression")).toBeTruthy();
-
-    const verified = buildArrangement({ ...arrangement, source: "verified", sections: [{ name: "Intro", chords: [{ chord: "C", beats: 4 }] }] });
-    render(<Timeline arrangement={verified} beat={0} onSeek={() => {}} />);
-    expect(screen.getByText("Verified full arrangement")).toBeTruthy();
+  it("marks already-played chords as past and later ones as upcoming", () => {
+    render(<Timeline arrangement={arrangement} beat={5} onSeek={() => {}} />);
+    // beat 5: C (0-4) is past, G (4-8) is active, Am/F (8-16) are upcoming
+    expect(screen.getByLabelText(/^C,/).className).toContain("timeline__chord--past");
+    expect(screen.getByLabelText(/^Am,/).className).toContain("timeline__chord--upcoming");
   });
 
   it("clicking a chord seeks to its start beat", () => {
