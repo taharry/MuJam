@@ -4,6 +4,7 @@ import { searchSongs, SONGS, type Song } from "../data/songs";
 import { extractYouTubeUrl, resolveYouTubeTitle } from "../lib/youtube";
 import { listCustomSongs, resolveSong } from "../lib/customSongs";
 import { getRecentSongIds } from "../lib/recentSongs";
+import { getFavoriteIds } from "../lib/favorites";
 import BrandMotif from "../components/BrandMotif";
 import SongCard from "../components/SongCard";
 import Divider from "../components/Divider";
@@ -16,15 +17,32 @@ export default function Home() {
   const navigate = useNavigate();
 
   const customSongs = useMemo(() => listCustomSongs(), []);
-  const recentSongs = useMemo(
-    () =>
-      getRecentSongIds()
-        .map((id) => resolveSong(id))
-        .filter((s): s is Song => !!s),
-    []
-  );
-  const featuredSongs = useMemo(() => SONGS.filter((s) => s.verifiedArrangement), []);
-  const beginnerSongs = useMemo(() => SONGS.filter((s) => s.difficulty === "easy").slice(0, 6), []);
+
+  // Each row is deduplicated against every row already built above it
+  // in one pass — Favorites (explicit, permanent intent) wins, then
+  // Recently played (explicit, recent intent), then the curated Full
+  // arrangements and Great for beginners rows — so the page reads as
+  // curated rather than the same handful of songs padding every
+  // section. "Your imports" stays separate: it's a different kind of
+  // content (yours, not catalog curation), so it isn't deduplicated
+  // against the rows above.
+  const { favoriteSongs, recentSongs, featuredSongs, beginnerSongs } = useMemo(() => {
+    const usedIds = new Set<string>();
+    function dedupe(songs: Song[]): Song[] {
+      const unique = songs.filter((s) => !usedIds.has(s.id));
+      unique.forEach((s) => usedIds.add(s.id));
+      return unique;
+    }
+    // Favorited/recently-played ids might point at a deleted custom
+    // import, or (in principle) a catalog id that no longer exists —
+    // resolveSong simply returns undefined for those, quietly dropped
+    // here rather than showing a broken card.
+    const favorites = dedupe(getFavoriteIds().map((id) => resolveSong(id)).filter((s): s is Song => !!s));
+    const recent = dedupe(getRecentSongIds().map((id) => resolveSong(id)).filter((s): s is Song => !!s));
+    const featured = dedupe(SONGS.filter((s) => s.verifiedArrangement));
+    const beginner = dedupe(SONGS.filter((s) => s.difficulty === "easy")).slice(0, 6);
+    return { favoriteSongs: favorites, recentSongs: recent, featuredSongs: featured, beginnerSongs: beginner };
+  }, []);
 
   const results = useMemo(() => searchSongs(query), [query]);
   const hasQuery = query.trim().length > 0;
@@ -117,6 +135,7 @@ export default function Home() {
         <>
           <Divider />
 
+          {favoriteSongs.length > 0 && <DiscoverySection title="Favorites" songs={favoriteSongs} />}
           {recentSongs.length > 0 && <DiscoverySection title="Recently played" songs={recentSongs} />}
           <DiscoverySection
             title="Full arrangements"

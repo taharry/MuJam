@@ -4,12 +4,14 @@ import { resolveSong } from "../lib/customSongs";
 import { recordRecentSong } from "../lib/recentSongs";
 import { getArrangement } from "../data/songs";
 import { INSTRUMENTS, type InstrumentId } from "../data/instruments";
+import { isFavorite } from "../lib/favorites";
 import InstrumentIcon from "../components/InstrumentIcon";
+import FavoriteButton from "../components/FavoriteButton";
 
 const INSTRUMENT_BLURB: Record<InstrumentId, string> = {
   ukulele: "4-string chord shapes",
   guitar: "6-string open & barre chords",
-  "electric-guitar": "Same shapes as acoustic guitar",
+  "electric-guitar": "Uses the same chord shapes as acoustic guitar — pick this if you're playing an electric",
   bass: "Root-note bass line",
   piano: "Backing, triad, or two-hand voicing",
 };
@@ -47,7 +49,10 @@ export default function SongDetail() {
       </button>
 
       <header className="song-detail__header">
-        <h1>{song.title}</h1>
+        <div className="song-detail__title-row">
+          <h1>{song.title}</h1>
+          <FavoriteButton songId={song.id} initialFavorite={isFavorite(song.id)} size={24} />
+        </div>
         <p className="song-detail__meta">
           <em>{song.artist}</em> · {song.genre} · {song.bpm} BPM
         </p>

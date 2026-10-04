@@ -1,7 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { getArrangement, type Song } from "../data/songs";
 import { INSTRUMENTS } from "../data/instruments";
+import { isFavorite } from "../lib/favorites";
 import InstrumentIcon from "./InstrumentIcon";
+import FavoriteButton from "./FavoriteButton";
 
 interface Props {
   song: Song;
@@ -18,8 +20,27 @@ export default function SongCard({ song }: Props) {
   const arrangementSource = getArrangement(song).source;
   const initial = song.title.trim().charAt(0).toUpperCase() || "?";
 
+  function open() {
+    navigate(`/song/${song.id}`);
+  }
+
   return (
-    <button className="song-card" onClick={() => navigate(`/song/${song.id}`)}>
+    // A <div> with link semantics, not a <button> — the favorite star
+    // below is a real nested <button>, which can't legally sit inside
+    // another <button>.
+    <div
+      className="song-card"
+      role="link"
+      tabIndex={0}
+      onClick={open}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          open();
+        }
+      }}
+    >
+      <FavoriteButton songId={song.id} initialFavorite={isFavorite(song.id)} size={16} className="song-card__favorite" />
       <div className="song-card__art" aria-hidden="true">
         <span className="song-card__art-letter">{initial}</span>
       </div>
@@ -34,10 +55,10 @@ export default function SongCard({ song }: Props) {
         </div>
         <div className="song-card__instruments" title="Playable on every instrument">
           {INSTRUMENTS.map((inst) => (
-            <InstrumentIcon key={inst.id} instrument={inst.id} size={14} />
+            <InstrumentIcon key={inst.id} instrument={inst.id} size={16} />
           ))}
         </div>
       </div>
-    </button>
+    </div>
   );
 }

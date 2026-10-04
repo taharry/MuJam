@@ -1,14 +1,17 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getArrangement, type Song } from "../data/songs";
 import type { InstrumentId } from "../data/instruments";
-import { inferSongKey, transposeChordSymbol } from "../lib/chordTheory";
+import { NOTE_NAMES, getBeginnerAlternative, getChordNoteIndices, inferSongKey, transposeChordSymbol } from "../lib/chordTheory";
 import { resolveCapoChord } from "../lib/capo";
 import { findActiveEventIndex, findActiveSection } from "../lib/arrangement";
 import { resolveStrumPattern } from "../lib/strum";
 import { supportsPlaybackRateControl } from "../lib/youtubeSync";
 import { getStoredSyncOffset, setStoredSyncOffset } from "../lib/syncOffsetStore";
+import { getStoredPracticeLevel, setStoredPracticeLevel, type PracticeLevel } from "../lib/practiceLevelStore";
 import { usePlaybackClock } from "../hooks/usePlaybackClock";
 import { useYouTubeSync } from "../hooks/useYouTubeSync";
+import { useCountIn } from "../hooks/useCountIn";
+import { useKeyboardShortcuts } from "../hooks/useKeyboardShortcuts";
 import ChordVisual from "./ChordVisual";
 import type { PianoVoicing } from "./PianoDiagram";
 import StrumGuide from "./StrumGuide";
@@ -16,10 +19,12 @@ import EqualizerBars from "./EqualizerBars";
 import BeatIndicator from "./BeatIndicator";
 import ScalePanel from "./ScalePanel";
 import Timeline from "./Timeline";
+import ShortcutsHelp from "./ShortcutsHelp";
 import {
   IconChevronLeft,
   IconChevronRight,
   IconFocus,
+  IconHelp,
   IconMetronome,
   IconPause,
   IconPlay,
@@ -42,17 +47,32 @@ interface Props {
 // always show sounding pitches, so it never gets one either.
 const CAPO_INSTRUMENTS: InstrumentId[] = ["guitar", "electric-guitar", "ukulele"];
 const MAX_CAPO_FRET = 12;
+const MIN_TEMPO_BPM = 40;
+const MAX_TEMPO_BPM = 300;
+const TEMPO_STEP_BPM = 5;
 const PIANO_VOICINGS: { id: PianoVoicing; label: string }[] = [
   { id: "backing", label: "Backing" },
   { id: "triad", label: "Triad" },
   { id: "both", label: "Both" },
 ];
+const PRACTICE_LEVELS: { id: PracticeLevel; label: string }[] = [
+  { id: "beginner", label: "Beginner" },
+  { id: "intermediate", label: "Intermediate" },
+  { id: "advanced", label: "Advanced" },
+];
+const COUNT_IN_OPTIONS: { id: 0 | 1 | 2; label: string }[] = [
+  { id: 0, label: "Off" },
+  { id: 1, label: "1 bar" },
+  { id: 2, label: "2 bars" },
+];
+const BEGINNER_DEFAULT_SPEED = 0.75;
 
 export default function Player({ song, instrument, mode, focusMode, onToggleFocusMode }: Props) {
   const arrangement = useMemo(() => getArrangement(song), [song]);
   const { events, sections, totalBeats, bpm, beatsPerBar } = arrangement;
 
   const clock = usePlaybackClock({ bpm, beatsPerBar, totalBeats });
+  const countIn = useCountIn();
 
   const [showScale, setShowScale] = useState(false);
   const [transpose, setTranspose] = useState(0);
@@ -60,6 +80,9 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
   const [pianoVoicing, setPianoVoicing] = useState<PianoVoicing>("triad");
   const [videoMode, setVideoMode] = useState(false);
   const [syncOffset, setSyncOffset] = useState(() => getStoredSyncOffset(song.id));
+  const [practiceLevel, setPracticeLevel] = useState<PracticeLevel>(() => getStoredPracticeLevel());
+  const [countInMeasures, setCountInMeasures] = useState<0 | 1 | 2>(0);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const hasVideo = !!song.youtubeId;
   const {
@@ -68,6 +91,7 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
     errorMessage: youtubeError,
     beat: youtubeBeat,
     playing: youtubePlaying,
+    play: youtubePlay,
     toggle: youtubeToggle,
     seek: youtubeSeek,
     availableRates: youtubeRates,
@@ -86,8 +110,53 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
   // loading or failed, so the UI never sits on a frozen/undefined beat).
   const beat = videoActive ? youtubeBeat : clock.beat;
   const playing = videoActive ? youtubePlaying : clock.playing;
-  const seek = videoActive ? youtubeSeek : clock.seek;
-  const toggle = videoActive ? youtubeToggle : clock.toggle;
+  const rawToggle = videoActive ? youtubeToggle : clock.toggle;
+  const rawSeek = videoActive ? youtubeSeek : clock.seek;
+  const rawPlay = videoActive ? youtubePlay : clock.play;
+
+  // Any explicit seek cancels a count-in in progress — jumping
+  // somewhere else mid-count-in would make the countdown meaningless.
+  function seek(targetBeat: number) {
+    if (countIn.active) countIn.cancel();
+    rawSeek(targetBeat);
+  }
+
+  // Pressing Play starts an optional count-in first; pressing it again
+  // while counting in cancels the count-in instead of starting
+  // playback early. The external video (if active) is never started
+  // until the count-in has actually finished.
+  function handlePlayPress() {
+    if (playing) {
+      rawToggle();
+      return;
+    }
+    if (countIn.active) {
+      countIn.cancel();
+      return;
+    }
+    if (countInMeasures > 0) {
+      const countInSpeed = videoActive ? 1 : clock.speed;
+      countIn.start(countInMeasures, beatsPerBar, bpm, countInSpeed, rawPlay);
+    } else {
+      rawToggle();
+    }
+  }
+
+  // Applies the beginner default speed once on load if that's the
+  // saved preference — without this, a returning beginner-level user
+  // would see the standard 1x default until they re-clicked the level.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (practiceLevel === "beginner") clock.setSpeed(BEGINNER_DEFAULT_SPEED);
+  }, []);
+
+  function changePracticeLevel(next: PracticeLevel) {
+    setPracticeLevel(next);
+    setStoredPracticeLevel(next);
+    // "Slower default practice settings" for Beginner — a default, not
+    // a lock, so switching away restores the standard default too.
+    clock.setSpeed(next === "beginner" ? BEGINNER_DEFAULT_SPEED : 1);
+  }
 
   function adjustSyncOffset(deltaSeconds: number) {
     setSyncOffset((prev) => {
@@ -95,6 +164,14 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
       setStoredSyncOffset(song.id, next);
       return next;
     });
+  }
+
+  // The clock only knows a speed multiplier; tempo is displayed and
+  // edited in actual BPM by converting through the song's native bpm.
+  const targetBpm = Math.round(bpm * clock.speed);
+  function setTargetBpm(nextBpm: number) {
+    const clamped = Math.max(MIN_TEMPO_BPM, Math.min(MAX_TEMPO_BPM, nextBpm));
+    clock.setSpeed(clamped / bpm);
   }
 
   const strumPattern = useMemo(
@@ -105,8 +182,21 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
   const capoSupported = CAPO_INSTRUMENTS.includes(instrument);
   const effectiveCapo = capoSupported ? capo : 0;
 
+  // Separates the song's true sounding chord from how THIS level
+  // practices it: beginner may substitute a simpler chord (never
+  // silently — always reported), intermediate/advanced always use the
+  // arrangement's real chord. Transpose/capo apply afterward either
+  // way, so they keep working identically across levels.
+  function practiceChord(rawChord: string) {
+    if (practiceLevel !== "beginner") return { chord: rawChord, beginner: null as ReturnType<typeof getBeginnerAlternative> | null };
+    const alt = getBeginnerAlternative(rawChord);
+    if (alt.kind === "simplified") return { chord: alt.chord, beginner: alt };
+    return { chord: rawChord, beginner: alt.kind === "unavailable" ? alt : null };
+  }
+
   function display(rawChord: string) {
-    return resolveCapoChord(rawChord, transpose, effectiveCapo);
+    const practiced = practiceChord(rawChord);
+    return { ...resolveCapoChord(practiced.chord, transpose, effectiveCapo), beginner: practiced.beginner, original: rawChord };
   }
 
   // Key inference only cares about what actually sounds, never about
@@ -124,15 +214,45 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
     seek(events[clamped].startBeat);
   }
 
+  useKeyboardShortcuts(
+    {
+      onPlayPause: handlePlayPress,
+      onSeekBackward: () => seek(Math.max(0, beat - 1)),
+      onSeekForward: () => seek(Math.min(totalBeats, beat + 1)),
+      onToggleLoop: () => {
+        if (!videoActive) clock.setLoop(!clock.loop);
+      },
+      onToggleMetronome: () => {
+        if (!videoActive) clock.setMetronome(!clock.metronome);
+      },
+      onToggleHelp: () => setHelpOpen((h) => !h),
+    },
+    true,
+    helpOpen
+  );
+
   const currentIndex = findActiveEventIndex(events, beat);
   const current = events[currentIndex] ?? events[0];
   const upcoming = events[currentIndex + 1];
+  const isLastEvent = currentIndex === events.length - 1;
+  // On the last chord: if looping is on (practice mode only — a video
+  // has no independent loop of its own), the "next" chord is really the
+  // arrangement's first one again, at the wrap point; otherwise there
+  // genuinely isn't a next chord, which the preview should say plainly
+  // rather than just disappearing.
+  const willLoopToStart = isLastEvent && !videoActive && clock.loop;
+  const nextEvent = upcoming ?? (willLoopToStart ? events[0] : undefined);
+  const beatsToNext = nextEvent ? Math.max(0, (upcoming ? upcoming.startBeat : totalBeats) - beat) : null;
+
   const currentSection = findActiveSection(sections, beat);
   const currentDisplay = current ? display(current.chord) : null;
-  const upcomingDisplay = upcoming ? display(upcoming.chord) : null;
+  const nextDisplay = nextEvent ? display(nextEvent.chord) : null;
   const showDiagram = mode === "visual" || mode === "both";
   const showChordName = mode === "chords" || mode === "both";
-  const beatsToNext = upcoming ? Math.max(0, upcoming.startBeat - beat) : null;
+  const advancedNotes =
+    practiceLevel === "advanced" && currentDisplay && !currentDisplay.unsupported
+      ? getChordNoteIndices(currentDisplay.soundingChord)
+      : null;
 
   return (
     <div className={`player${focusMode ? " player--focus" : ""}`}>
@@ -162,6 +282,34 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
                 </button>
               )}
             </div>
+
+            {!videoActive && (
+              <div className="tempo-controls">
+                <span className="tempo-controls__label">Tempo</span>
+                <button
+                  className="stepper-btn"
+                  onClick={() => setTargetBpm(targetBpm - TEMPO_STEP_BPM)}
+                  disabled={targetBpm <= MIN_TEMPO_BPM}
+                  aria-label="Decrease tempo"
+                >
+                  −
+                </button>
+                <span className="tempo-controls__value">{targetBpm} BPM</span>
+                <button
+                  className="stepper-btn"
+                  onClick={() => setTargetBpm(targetBpm + TEMPO_STEP_BPM)}
+                  disabled={targetBpm >= MAX_TEMPO_BPM}
+                  aria-label="Increase tempo"
+                >
+                  +
+                </button>
+                {clock.speed !== 1 && (
+                  <button className="tempo-controls__reset" onClick={() => clock.setSpeed(1)}>
+                    Reset
+                  </button>
+                )}
+              </div>
+            )}
 
             {capoSupported && (
               <div className="capo-controls">
@@ -219,7 +367,42 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
                 {videoMode ? "Practice mode" : "Watch on YouTube"}
               </button>
             )}
+
+            <button
+              className="toggle-chip"
+              onClick={() => setHelpOpen(true)}
+              aria-haspopup="dialog"
+              aria-label="Show keyboard shortcuts (?)"
+            >
+              <IconHelp /> Shortcuts
+            </button>
           </div>
+
+          <div className="player__settings-row">
+            <div className="mode-switch mode-switch--voicing" role="group" aria-label="Practice level">
+              {PRACTICE_LEVELS.map((l) => (
+                <button
+                  key={l.id}
+                  className={`mode-switch__item${l.id === practiceLevel ? " mode-switch__item--active" : ""}`}
+                  onClick={() => changePracticeLevel(l.id)}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+            <div className="mode-switch mode-switch--voicing" role="group" aria-label="Count-in">
+              {COUNT_IN_OPTIONS.map((o) => (
+                <button
+                  key={o.id}
+                  className={`mode-switch__item${o.id === countInMeasures ? " mode-switch__item--active" : ""}`}
+                  onClick={() => setCountInMeasures(o.id)}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {capoSupported && capo > 0 && (
             <p className="settings-hint">
               Capo on fret {capo}: the chord name shows what sounds, the diagram shows the shape to finger.
@@ -267,6 +450,7 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
                   <p className="settings-hint">
                     If the chords drift from the video, nudge the sync offset — hand-entered arrangements don't
                     always line up perfectly with a given upload.
+                    {countInMeasures > 0 && " The count-in plays before the video starts, never over it."}
                   </p>
                 </>
               )}
@@ -279,7 +463,9 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
         <div className="practice-stage__top">
           <span className="practice-stage__top-spacer" aria-hidden="true" />
           <span className="practice-stage__section-group">
-            <span className="practice-stage__section">{currentSection?.name}</span>
+            <span className="practice-stage__section">
+              {countIn.active ? "Get ready" : currentSection?.name}
+            </span>
             <EqualizerBars active={playing} />
           </span>
           <button
@@ -293,79 +479,116 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
           </button>
         </div>
 
-        <div className="practice-stage__main">
-          <button
-            className="nav-arrow"
-            onClick={() => goToIndex(currentIndex - 1)}
-            disabled={currentIndex <= 0}
-            aria-label="Previous chord"
-          >
-            <IconChevronLeft />
-          </button>
+        {countIn.active ? (
+          <div className="count-in">
+            <div className="count-in__number">{(countIn.step % beatsPerBar) + 1}</div>
+            <BeatIndicator beatsPerBar={beatsPerBar} beat={countIn.step} playing />
+          </div>
+        ) : (
+          <>
+            <div className="practice-stage__main">
+              <button
+                className="nav-arrow"
+                onClick={() => goToIndex(currentIndex - 1)}
+                disabled={currentIndex <= 0}
+                aria-label="Previous chord"
+              >
+                <IconChevronLeft />
+              </button>
 
-          <div className="practice-stage__center">
-            <div className="practice-stage__now" key={currentIndex}>
-              {showChordName && currentDisplay && (
-                <>
-                  <div
-                    className={`player__chord-name${currentDisplay.unsupported ? " player__chord-name--unsupported" : ""}`}
-                  >
-                    {currentDisplay.unsupported ? "Unsupported chord" : currentDisplay.soundingChord}
+              <div className="practice-stage__pair">
+                <div className="practice-stage__current">
+                  <div className="practice-stage__now" key={currentIndex}>
+                    {showChordName && currentDisplay && (
+                      <>
+                        <div
+                          className={`player__chord-name${currentDisplay.unsupported ? " player__chord-name--unsupported" : ""}`}
+                        >
+                          {currentDisplay.unsupported ? "Unsupported chord" : currentDisplay.soundingChord}
+                        </div>
+                        {!currentDisplay.unsupported && currentDisplay.shapeChord !== currentDisplay.soundingChord && (
+                          <div className="player__chord-shape-hint">shape: {currentDisplay.shapeChord}</div>
+                        )}
+                        {currentDisplay.beginner?.kind === "simplified" && (
+                          <div className="player__practice-note player__practice-note--simplified">
+                            Beginner: simplified from {currentDisplay.original}
+                          </div>
+                        )}
+                        {currentDisplay.beginner?.kind === "unavailable" && (
+                          <div className="player__practice-note">No simpler beginner alternative for this chord</div>
+                        )}
+                        {advancedNotes && (
+                          <div className="player__practice-note">
+                            Notes: {advancedNotes.map((n) => NOTE_NAMES[n]).join(" · ")}
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {showDiagram && (
+                      <ChordVisual
+                        instrument={instrument}
+                        chord={currentDisplay?.shapeChord ?? ""}
+                        size={focusMode ? 260 : 220}
+                        highlight
+                        pianoVoicing={pianoVoicing}
+                      />
+                    )}
                   </div>
-                  {!currentDisplay.unsupported && currentDisplay.shapeChord !== currentDisplay.soundingChord && (
-                    <div className="player__chord-shape-hint">shape: {currentDisplay.shapeChord}</div>
-                  )}
-                </>
-              )}
-              {showDiagram && (
-                <ChordVisual
-                  instrument={instrument}
-                  chord={currentDisplay?.shapeChord ?? ""}
-                  size={focusMode ? 260 : 220}
-                  highlight
-                  pianoVoicing={pianoVoicing}
-                />
-              )}
-            </div>
-            <BeatIndicator beatsPerBar={beatsPerBar} beat={beat} playing={playing} />
-          </div>
-
-          <button
-            className="nav-arrow"
-            onClick={() => goToIndex(currentIndex + 1)}
-            disabled={currentIndex >= events.length - 1}
-            aria-label="Next chord"
-          >
-            <IconChevronRight />
-          </button>
-        </div>
-
-        {upcoming && upcomingDisplay && (
-          <div className="practice-stage__next">
-            <span className="practice-stage__next-label">
-              Next{beatsToNext !== null ? ` · in ${Math.max(1, Math.ceil(beatsToNext))} beat${Math.ceil(beatsToNext) === 1 ? "" : "s"}` : ""}
-            </span>
-            <div className="practice-stage__next-content">
-              {showDiagram ? (
-                <ChordVisual
-                  instrument={instrument}
-                  chord={upcomingDisplay.shapeChord ?? ""}
-                  size={72}
-                  pianoVoicing={pianoVoicing}
-                />
-              ) : (
-                <div className="player__chord-name player__chord-name--small">
-                  {upcomingDisplay.unsupported ? "?" : upcomingDisplay.soundingChord}
+                  <BeatIndicator beatsPerBar={beatsPerBar} beat={beat} playing={playing} />
                 </div>
-              )}
+
+                <div className="practice-stage__arrow" aria-hidden="true">
+                  <IconChevronRight size={22} />
+                </div>
+
+                <div className="practice-stage__next">
+                  <span className="practice-stage__next-label">
+                    {willLoopToStart ? "Loops to" : "Next"}
+                    {/* Beginner: less detail on screen at once — just "what's next", not the precise beat count. */}
+                    {practiceLevel !== "beginner" && beatsToNext !== null
+                      ? ` · in ${Math.max(1, Math.ceil(beatsToNext))} beat${Math.ceil(beatsToNext) === 1 ? "" : "s"}`
+                      : ""}
+                  </span>
+                  <div className="practice-stage__next-content">
+                    {nextEvent && nextDisplay ? (
+                      showDiagram ? (
+                        <ChordVisual
+                          instrument={instrument}
+                          chord={nextDisplay.shapeChord ?? ""}
+                          size={focusMode ? 150 : 128}
+                          pianoVoicing={pianoVoicing}
+                        />
+                      ) : (
+                        <div className="player__chord-name player__chord-name--small">
+                          {nextDisplay.unsupported ? "?" : nextDisplay.soundingChord}
+                        </div>
+                      )
+                    ) : (
+                      <div className="practice-stage__next-end">End of arrangement</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <button
+                className="nav-arrow"
+                onClick={() => goToIndex(currentIndex + 1)}
+                disabled={currentIndex >= events.length - 1}
+                aria-label="Next chord"
+              >
+                <IconChevronRight />
+              </button>
             </div>
-          </div>
+
+            {instrument !== "piano" && (
+              <StrumGuide pattern={strumPattern} beatPosition={beat} playing={playing} />
+            )}
+          </>
         )}
       </div>
 
       {!focusMode && (
         <>
-          {instrument !== "piano" && <StrumGuide pattern={strumPattern} beatPosition={beat} playing={playing} />}
           <Timeline arrangement={arrangement} beat={beat} onSeek={seek} />
           {showScale && inferredKey && (
             <ScalePanel instrument={instrument} rootIndex={inferredKey.rootIndex} mode={inferredKey.mode} />
@@ -374,31 +597,23 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
       )}
 
       <div className="transport-bar">
-        <button className="btn btn--primary btn--icon-label" onClick={toggle}>
-          {playing ? <IconPause /> : <IconPlay />}
-          {playing ? "Pause" : beat > 0 ? "Resume" : "Play"}
+        <button
+          className="btn btn--primary btn--icon-label"
+          onClick={handlePlayPress}
+          aria-label={playing ? "Pause (space)" : countIn.active ? "Cancel count-in (space)" : "Play (space)"}
+        >
+          {playing || countIn.active ? <IconPause /> : <IconPlay />}
+          {countIn.active ? "Counting in…" : playing ? "Pause" : beat > 0 ? "Resume" : "Play"}
         </button>
         <button className="btn btn--icon" onClick={() => seek(0)} title="Restart" aria-label="Restart">
           <IconRestart />
         </button>
         {!videoActive && (
-          <select
-            className="speed-select"
-            value={clock.speed}
-            onChange={(e) => clock.setSpeed(Number(e.target.value))}
-            aria-label="Playback speed"
-          >
-            <option value={0.5}>0.5x</option>
-            <option value={0.75}>0.75x</option>
-            <option value={1}>1x</option>
-            <option value={1.25}>1.25x</option>
-          </select>
-        )}
-        {!videoActive && (
           <button
             className={`toggle-chip${clock.metronome ? " toggle-chip--active" : ""}`}
             onClick={() => clock.setMetronome(!clock.metronome)}
             aria-pressed={clock.metronome}
+            aria-label={`Metronome (M)${clock.metronome ? ", on" : ", off"}`}
           >
             <IconMetronome /> Metronome
           </button>
@@ -408,11 +623,14 @@ export default function Player({ song, instrument, mode, focusMode, onToggleFocu
             className={`toggle-chip${clock.loop ? " toggle-chip--active" : ""}`}
             onClick={() => clock.setLoop(!clock.loop)}
             aria-pressed={clock.loop}
+            aria-label={`Loop (L)${clock.loop ? ", on" : ", off"}`}
           >
             <IconRepeat /> Loop
           </button>
         )}
       </div>
+
+      {helpOpen && <ShortcutsHelp onClose={() => setHelpOpen(false)} />}
     </div>
   );
 }

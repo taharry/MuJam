@@ -293,14 +293,20 @@ export const SONGS: Song[] = [
         { chord: "Em", beats: 4 }, { chord: "Em", beats: 4 },
       ] },
     ],
-    // Cross-checked against multiple published chord charts. Uses the
+    // Cross-checked against multiple independent published chord charts
+    // (justinguitar.com, laurenbateman.com, tabs4acoustic.com). Uses the
     // recording's actual chords (Em7/Dsus4/A7sus4/Cadd9), not the
-    // simplified Em/D/A/C above — including Cadd9, which this app's
-    // chord vocabulary doesn't support yet, so it deliberately renders
-    // as "Unsupported chord" rather than being silently swapped for a
-    // plain C. Pre-chorus is condensed to one representative pass
-    // rather than the full repeat count, and a low-confidence passing
-    // chord (a slash chord noted on some charts) is omitted.
+    // simplified Em/D/A/C above — including Cadd9 and A7sus4, which this
+    // app's chord vocabulary doesn't support yet, so they deliberately
+    // render as "Unsupported chord" rather than being silently swapped
+    // for a plain C/A. The pre-chorus now includes its full two-line
+    // repeat plus the turnaround line into the chorus (corroborated by
+    // two independent sources); a low-confidence passing slash chord in
+    // that turnaround (G/F#, noted on some charts) is still omitted. A
+    // third, instrumental verse-chord pass before the outro is included
+    // per tabs4acoustic's structure (the recording's guitar-solo/bridge
+    // section reuses the verse progression rather than introducing new
+    // chords).
     verifiedArrangement: {
       sections: [
         { id: "ww-vamp", name: "Intro", chords: [
@@ -311,14 +317,19 @@ export const SONGS: Song[] = [
         { id: "ww-prechorus", name: "Pre-Chorus", chords: [
           { chord: "Cadd9", beats: 4 }, { chord: "Dsus4", beats: 4 },
           { chord: "Em7", beats: 4 }, { chord: "Em7", beats: 4 },
-        ], repeat: 2 },
+          { chord: "Cadd9", beats: 4 }, { chord: "Dsus4", beats: 4 },
+          { chord: "Em7", beats: 4 }, { chord: "Em7", beats: 4 },
+          { chord: "Cadd9", beats: 4 }, { chord: "Dsus4", beats: 4 },
+          { chord: "G", beats: 4 }, { chord: "Em7", beats: 4 },
+        ] },
         { id: "ww-chorus", name: "Chorus", chords: [
           { chord: "Cadd9", beats: 4 }, { chord: "Em7", beats: 4 },
           { chord: "G", beats: 4 }, { chord: "Em", beats: 4 },
         ], repeat: 3 },
         { name: "Verse 2", ref: "ww-vamp", repeat: 2 },
-        { name: "Pre-Chorus", ref: "ww-prechorus", repeat: 2 },
+        { name: "Pre-Chorus", ref: "ww-prechorus" },
         { name: "Chorus", ref: "ww-chorus", repeat: 4 },
+        { name: "Verse 3 (Instrumental)", ref: "ww-vamp", repeat: 2 },
         { name: "Outro", chords: [
           { chord: "Cadd9", beats: 4 }, { chord: "Em7", beats: 4 },
           { chord: "G", beats: 4 }, { chord: "Em", beats: 4 },
@@ -951,6 +962,18 @@ export const SONGS: Song[] = [
     { name: "A", chords: [{ chord: "Cm", beats: 4 }, { chord: "Ab", beats: 4 }, { chord: "Dm", beats: 4 }, { chord: "G7", beats: 4 }] },
   ] },
 
+  // --- Laufey (chords cross-checked against published ukulele/guitar charts) ---
+  { id: "from-the-start", title: "From The Start", artist: "Laufey", bpm: 81, beatsPerBar: 4, genre: "jazz", difficulty: "medium", sections: [
+    { name: "Verse", chords: [{ chord: "Dm", beats: 4 }, { chord: "G7", beats: 4 }, { chord: "Cmaj7", beats: 4 }, { chord: "Em7", beats: 4 }, { chord: "A7", beats: 4 }] },
+  ] },
+  { id: "like-the-movies", title: "Like the Movies", artist: "Laufey", bpm: 87, beatsPerBar: 4, genre: "jazz", difficulty: "medium", sections: [
+    { name: "Verse", chords: [{ chord: "Cmaj7", beats: 4 }, { chord: "A7", beats: 4 }, { chord: "Dm7", beats: 4 }, { chord: "G7", beats: 4 }] },
+    { name: "Chorus", chords: [{ chord: "Fmaj7", beats: 4 }, { chord: "Em7", beats: 4 }, { chord: "A7", beats: 4 }, { chord: "Dm7", beats: 4 }] },
+  ] },
+  { id: "second-best", title: "Second Best", artist: "Laufey", bpm: 135, beatsPerBar: 4, genre: "jazz", difficulty: "medium", sections: [
+    { name: "Verse", chords: [{ chord: "Cm7", beats: 4 }, { chord: "F7", beats: 4 }, { chord: "Bbmaj7", beats: 4 }, { chord: "G7", beats: 4 }] },
+  ] },
+
   // --- Country ---
   { id: "country-roads", title: "Take Me Home, Country Roads", artist: "John Denver", bpm: 94, beatsPerBar: 4, genre: "country", difficulty: "easy", sections: [
     { name: "Verse", chords: [{ chord: "G", beats: 4 }, { chord: "Em", beats: 4 }, { chord: "C", beats: 4 }, { chord: "D", beats: 4 }] },
@@ -1177,6 +1200,15 @@ export const SONGS: Song[] = [
   ] },
   { id: "gangnam-style", title: "Gangnam Style", artist: "PSY", bpm: 132, beatsPerBar: 4, genre: "kpop", difficulty: "easy", sections: [
     { name: "Groove", chords: [{ chord: "Bm", beats: 4 }, { chord: "G", beats: 4 }, { chord: "D", beats: 4 }] },
+  ] },
+  { id: "hype-boy", title: "Hype Boy", artist: "NewJeans", bpm: 100, beatsPerBar: 4, genre: "kpop", difficulty: "medium", sections: [
+    { name: "Verse", chords: [{ chord: "Am7", beats: 4 }, { chord: "Bm7", beats: 4 }, { chord: "Em7", beats: 4 }] },
+  ] },
+  { id: "super-shy", title: "Super Shy", artist: "NewJeans", bpm: 150, beatsPerBar: 4, genre: "kpop", difficulty: "easy", sections: [
+    { name: "Verse", chords: [{ chord: "Gm7", beats: 4 }, { chord: "Fm", beats: 4 }] },
+  ] },
+  { id: "ditto", title: "Ditto", artist: "NewJeans", bpm: 134, beatsPerBar: 4, genre: "kpop", difficulty: "medium", sections: [
+    { name: "Verse", chords: [{ chord: "C", beats: 4 }, { chord: "D", beats: 4 }, { chord: "Em", beats: 4 }, { chord: "Am7", beats: 4 }] },
   ] },
 
   // --- Major artists, past 3 decades ---
@@ -1515,6 +1547,24 @@ export const SONGS: Song[] = [
   ] },
   { id: "crazy-noisy-bizarre-town", title: "Crazy Noisy Bizarre Town", artist: "THE DU (JoJo's Bizarre Adventure OP5)", bpm: 136, beatsPerBar: 4, genre: "anime", difficulty: "easy", sections: [
     { name: "Verse", chords: [{ chord: "G", beats: 4 }, { chord: "D", beats: 4 }, { chord: "Em", beats: 4 }, { chord: "A", beats: 4 }] },
+  ] },
+
+  // --- Bengali songs (chords cross-checked against published chord charts) ---
+  { id: "ekla-chalo-re", title: "Ekla Chalo Re", artist: "Rabindranath Tagore (Rabindra Sangeet)", bpm: 92, beatsPerBar: 4, genre: "traditional", difficulty: "easy", sections: [
+    { name: "Verse", chords: [{ chord: "C", beats: 4 }, { chord: "G", beats: 4 }, { chord: "C", beats: 4 }, { chord: "F", beats: 4 }, { chord: "C", beats: 4 }, { chord: "G", beats: 4 }, { chord: "C", beats: 4 }] },
+    { name: "Chorus", chords: [{ chord: "C", beats: 4 }, { chord: "F", beats: 4 }, { chord: "C", beats: 4 }, { chord: "F", beats: 4 }, { chord: "C", beats: 4 }, { chord: "G", beats: 4 }, { chord: "C", beats: 4 }] },
+  ] },
+  { id: "bhindeshi-tara", title: "Bhindeshi Tara", artist: "Chandrabindoo", bpm: 120, beatsPerBar: 4, genre: "folk", difficulty: "easy", sections: [
+    { name: "Verse", chords: [{ chord: "G", beats: 4 }, { chord: "C", beats: 4 }, { chord: "D", beats: 4 }, { chord: "G", beats: 4 }] },
+    { name: "Chorus", chords: [{ chord: "Em", beats: 4 }, { chord: "C", beats: 4 }, { chord: "D", beats: 4 }, { chord: "G", beats: 4 }] },
+  ] },
+  { id: "bela-bose", title: "Bela Bose (2441139)", artist: "Anjan Dutta", bpm: 174, beatsPerBar: 4, genre: "folk", difficulty: "medium", sections: [
+    { name: "Verse", chords: [{ chord: "D", beats: 4 }, { chord: "Bm", beats: 4 }, { chord: "A", beats: 4 }, { chord: "G", beats: 4 }] },
+    { name: "Chorus", chords: [{ chord: "G", beats: 4 }, { chord: "A", beats: 4 }, { chord: "D", beats: 4 }, { chord: "Bm", beats: 4 }] },
+  ] },
+  { id: "bolna-tui-bolna", title: "Bolna Tui Bolna", artist: "Hridoy Khan", bpm: 140, beatsPerBar: 4, genre: "folk", difficulty: "medium", sections: [
+    { name: "Verse", chords: [{ chord: "D", beats: 4 }, { chord: "Bm", beats: 4 }, { chord: "G", beats: 4 }, { chord: "A", beats: 4 }] },
+    { name: "Chorus", chords: [{ chord: "D", beats: 4 }, { chord: "Bm", beats: 4 }, { chord: "D", beats: 4 }, { chord: "A", beats: 4 }] },
   ] },
 ];
 

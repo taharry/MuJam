@@ -114,6 +114,10 @@ export function useYouTubeSync({ videoId, offsetSeconds, bpm, enabled }: Options
     };
   }, [status]);
 
+  function play() {
+    controllerRef.current?.play();
+  }
+
   function toggle() {
     controllerRef.current?.toggle();
   }
@@ -127,5 +131,5 @@ export function useYouTubeSync({ videoId, offsetSeconds, bpm, enabled }: Options
     controllerRef.current?.setPlaybackRate(rate);
   }
 
-  return { containerRef, status, errorMessage, beat, playing, toggle, seek, availableRates, setPlaybackRate };
+  return { containerRef, status, errorMessage, beat, playing, play, toggle, seek, availableRates, setPlaybackRate };
 }

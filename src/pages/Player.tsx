@@ -3,7 +3,9 @@ import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { resolveSong } from "../lib/customSongs";
 import { getArrangement } from "../data/songs";
 import { INSTRUMENTS, isInstrumentId } from "../data/instruments";
+import { isFavorite } from "../lib/favorites";
 import Player, { type ViewMode } from "../components/Player";
+import FavoriteButton from "../components/FavoriteButton";
 
 const ARRANGEMENT_LABEL = {
   verified: "Full arrangement",
@@ -48,7 +50,10 @@ export default function PlayerPage() {
               ))}
             </div>
           </div>
-          <h1>{song.title}</h1>
+          <div className="song-detail__title-row">
+            <h1>{song.title}</h1>
+            <FavoriteButton songId={song.id} initialFavorite={isFavorite(song.id)} size={22} />
+          </div>
           <p className="player-page__meta">
             <em>{song.artist}</em> · {INSTRUMENTS.find((i) => i.id === instrument)?.label}
             {" · "}

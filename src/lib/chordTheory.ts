@@ -86,6 +86,41 @@ export function transposeChordSymbol(symbol: string, semitones: number): string 
   return NOTE_NAMES[newIndex] + QUALITY_SUFFIX[parsed.quality];
 }
 
+// A beginner-level "practice how" alternative — never a claim about
+// what the recording actually sounds like. "unchanged" means the chord
+// is already a plain triad (nothing simpler exists); "unavailable"
+// means it's recognized but no musically valid simplification rule in
+// this app covers it (e.g. a diminished triad), so the original chord
+// must be kept and the UI should say plainly that no easier version
+// exists rather than silently altering the harmony.
+export type BeginnerAlternative =
+  | { kind: "unchanged" }
+  | { kind: "simplified"; chord: string }
+  | { kind: "unavailable" };
+
+// Dropping a 7th/extension down to the plain triad it's built on is a
+// standard, musically valid simplification (the root and third — the
+// chord's core identity — are preserved); suspended chords are
+// commonly substituted with the major triad they resolve to. No rule
+// exists for "dim" — collapsing it to a plain minor or major would
+// meaningfully change its character, not just simplify it.
+const BEGINNER_SIMPLIFICATION: Partial<Record<ChordQuality, ChordQuality>> = {
+  "7": "major",
+  maj7: "major",
+  m7: "minor",
+  sus4: "major",
+  sus2: "major",
+};
+
+export function getBeginnerAlternative(symbol: string): BeginnerAlternative {
+  const parsed = parseChord(symbol);
+  if (!parsed) return { kind: "unavailable" };
+  if (parsed.quality === "major" || parsed.quality === "minor") return { kind: "unchanged" };
+  const simplerQuality = BEGINNER_SIMPLIFICATION[parsed.quality];
+  if (!simplerQuality) return { kind: "unavailable" };
+  return { kind: "simplified", chord: parsed.root + QUALITY_SUFFIX[simplerQuality] };
+}
+
 export type ScaleMode = "major" | "minor";
 
 const SCALE_INTERVALS: Record<ScaleMode, number[]> = {
